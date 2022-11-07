@@ -4,67 +4,19 @@ package ceresdb
 
 import (
 	"context"
-	"errors"
-
-	"github.com/CeresDB/ceresdbproto/go/ceresdbproto"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"github.com/CeresDB/ceresdb-client-go/types"
 )
 
-const (
-	codeOk = 200
-)
-
-type Client struct {
-	inner ceresdbproto.StorageServiceClient
-	conn  *grpc.ClientConn
+type CeresDBClient interface {
+	Query(context.Context, *types.QueryRequest) (*types.QueryResponse, error)
+	Write(context.Context, []*types.Row) (*types.WriteResponse, error)
+	Close() error
 }
 
-func NewClient(addr string) (*Client, error) {
-	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
-	if err != nil {
-		return nil, err
+func NewClient(endpoint string, opts ...Option) (CeresDBClient, error) {
+	dopts := defaultOptions()
+	for _, opt := range opts {
+		opt.apply(dopts)
 	}
-
-	c := ceresdbproto.NewStorageServiceClient(conn)
-
-	return &Client{
-		inner: c,
-		conn:  conn,
-	}, nil
-}
-
-func (c *Client) Write(ctx context.Context, points []Point) (int, error) {
-	req := writeRequest{
-		points: points,
-	}
-
-	resp, err := c.inner.Write(ctx, req.toPb())
-	if err != nil {
-		return 0, err
-	}
-
-	if codeOk == resp.Header.Code {
-		return int(resp.Success), nil
-	}
-
-	return 0, errors.New(resp.Header.GetError())
-}
-
-func (c *Client) Close() error {
-	return c.conn.Close()
-}
-
-func (c *Client) Query(ctx context.Context, sql string) (string, error) {
-	req := ceresdbproto.QueryRequest{
-		Metrics: []string{""},
-		Ql:      sql,
-	}
-	resp, err := c.inner.Query(ctx, &req)
-	if err != nil {
-		return "", err
-	}
-
-	return resp.SchemaContent, nil
+	return newClient(endpoint, dopts)
 }
