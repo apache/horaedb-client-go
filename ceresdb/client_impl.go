@@ -45,7 +45,10 @@ func (c *clientImpl) Query(ctx context.Context, req *types.QueryRequest) (*types
 }
 
 func (c *clientImpl) Write(ctx context.Context, rows []*types.Row) (*types.WriteResponse, error) {
-	writeRequest := utils.BuildRowsToPb(rows)
+	writeRequest, err := utils.BuildRowsToPb(rows)
+	if err != nil {
+		return nil, err
+	}
 
 	writeResponse, err := c.inner.Write(ctx, writeRequest)
 	if err != nil {

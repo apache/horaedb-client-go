@@ -3,11 +3,13 @@
 package utils
 
 import (
+	"errors"
+
 	"github.com/CeresDB/ceresdb-client-go/types"
 	"github.com/CeresDB/ceresdbproto/go/ceresdbproto"
 )
 
-func BuildRowsToPb(rows []*types.Row) *ceresdbproto.WriteRequest {
+func BuildRowsToPb(rows []*types.Row) (*ceresdbproto.WriteRequest, error) {
 	tuples := make(map[string]*writeTuple)
 
 	for _, row := range rows {
@@ -47,9 +49,13 @@ func BuildRowsToPb(rows []*types.Row) *ceresdbproto.WriteRequest {
 		}
 		for fieldK, fieldV := range row.Fields {
 			idx := tuple.fieldDict.insert(fieldK)
+			pbV, err := buildPbValue(fieldV)
+			if err != nil {
+				return nil, err
+			}
 			fieldGroup.Fields = append(fieldGroup.Fields, &ceresdbproto.Field{
 				NameIndex: uint32(idx),
-				Value:     buildPbValue(fieldV),
+				Value:     pbV,
 			})
 		}
 		writeEntry.FieldGroups = []*ceresdbproto.FieldGroup{fieldGroup}
@@ -65,85 +71,85 @@ func BuildRowsToPb(rows []*types.Row) *ceresdbproto.WriteRequest {
 		tuple.writeMetric.FieldNames = tuple.fieldDict.toOrdered()
 		writeRequest.Metrics = append(writeRequest.Metrics, &tuple.writeMetric)
 	}
-	return writeRequest
+	return writeRequest, nil
 }
 
-func buildPbValue(v interface{}) *ceresdbproto.Value {
+func buildPbValue(v interface{}) (*ceresdbproto.Value, error) {
 	switch v.(type) {
 	case bool:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_BoolValue{
 				v.(bool),
 			},
-		}
+		}, nil
 	case string:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_StringValue{
 				v.(string),
 			},
-		}
+		}, nil
 	case float64:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Float64Value{
 				v.(float64),
 			},
-		}
+		}, nil
 	case float32:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Float32Value{
 				v.(float32),
 			},
-		}
+		}, nil
 	case int64:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Int64Value{
 				v.(int64),
 			},
-		}
+		}, nil
 	case int32:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Int32Value{
 				v.(int32),
 			},
-		}
+		}, nil
 	case int16:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Int16Value{
 				int32(v.(int16)),
 			},
-		}
+		}, nil
 	case int8:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Int8Value{
 				int32(v.(int8)),
 			},
-		}
+		}, nil
 	case uint64:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Uint64Value{
 				v.(uint64),
 			},
-		}
+		}, nil
 	case uint32:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Uint32Value{
 				v.(uint32),
 			},
-		}
+		}, nil
 	case uint16:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Uint16Value{
 				uint32(v.(uint16)),
 			},
-		}
+		}, nil
 	case uint8:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Uint8Value{
 				uint32(v.(uint8)),
 			},
-		}
+		}, nil
 	default:
-		return nil
+		return nil, errors.New("invalid field type in build pb")
 	}
 }
 
