@@ -4,6 +4,7 @@ package ceresdb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/CeresDB/ceresdb-client-go/types"
@@ -38,8 +39,9 @@ func newClient(endpoint string, opts *options) (CeresDBClient, error) {
 	}, nil
 }
 
+// TODO
 func (c *clientImpl) Query(ctx context.Context, req *types.QueryRequest) (*types.QueryResponse, error) {
-	return nil, nil
+	return nil, errors.New("not implemented")
 }
 
 func (c *clientImpl) Write(ctx context.Context, rows []*types.Row) (*types.WriteResponse, error) {
