@@ -40,6 +40,8 @@ func newClient(endpoint string, opts *options) (CeresDBClient, error) {
 }
 
 // TODO
+// https://github.com/CeresDB/ceresdb-client-go/issues/1
+// next pr support
 func (c *clientImpl) Query(ctx context.Context, req *types.QueryRequest) (types.QueryResponse, error) {
 	return types.QueryResponse{}, errors.New("not implemented")
 }
