@@ -161,8 +161,8 @@ type writeTuple struct {
 
 // for sort keys
 type nameDict struct {
-	index       int
-	nameIndexes map[string]int
+	index       int            // cur largest index
+	nameIndexes map[string]int // name -> index
 }
 
 func (d *nameDict) insert(name string) int {
