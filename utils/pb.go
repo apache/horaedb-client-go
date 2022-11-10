@@ -153,6 +153,7 @@ type writeTuple struct {
 	fieldDict   nameDict
 }
 
+// for sort keys
 type nameDict struct {
 	index       int
 	nameIndexes map[string]int
