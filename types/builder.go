@@ -13,12 +13,14 @@ const (
 )
 
 type RowBuilder struct {
-	row   *Row
-	built bool
+	metric string
+	row    *Row
+	built  bool
 }
 
 func NewRowBuilder(metric string) *RowBuilder {
 	return &RowBuilder{
+		metric: metric,
 		row: &Row{
 			Series: Series{
 				Metric: metric,
@@ -30,10 +32,12 @@ func NewRowBuilder(metric string) *RowBuilder {
 	}
 }
 
+// reset bulider
+// The row can then be built again with the same metric
 func (b *RowBuilder) Reset() *RowBuilder {
 	b.row = &Row{
 		Series: Series{
-			Metric: b.row.Metric,
+			Metric: b.metric,
 			Tags:   make(map[string]string),
 		},
 		Fields: make(map[string]interface{}),
@@ -85,7 +89,7 @@ func (b *RowBuilder) Build() (*Row, error) {
 	for fieldK, fieldV := range row.Fields {
 		convertedFieldV, err := convertField(fieldV)
 		if err != nil {
-			return nil, fmt.Errorf("Notvalid field %s:%v", fieldK, fieldV)
+			return nil, fmt.Errorf("Not valid field %s:%v", fieldK, fieldV)
 		}
 		row.Fields[fieldK] = convertedFieldV
 	}

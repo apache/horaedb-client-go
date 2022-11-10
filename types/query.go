@@ -2,8 +2,10 @@
 
 package types
 
+// TODO
 type QueryRequest struct {
 }
 
+// TODO
 type QueryResponse struct {
 }
