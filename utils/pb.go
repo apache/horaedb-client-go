@@ -161,27 +161,27 @@ type writeTuple struct {
 
 // for sort keys
 type nameDict struct {
-	index       int            // cur largest index
-	nameIndexes map[string]int // name -> index
+	curIndex    int            // cur largest curIndex
+	nameIndexes map[string]int // name -> curIndex
 }
 
 func (d *nameDict) insert(name string) int {
 	if idx, ok := d.nameIndexes[name]; ok {
 		return idx
 	} else {
-		idx := d.index
+		idx := d.curIndex
 		d.nameIndexes[name] = idx
-		d.index = idx + 1
+		d.curIndex = idx + 1
 		return idx
 	}
 }
 
 func (d *nameDict) toOrdered() []string {
-	if d.index == 0 {
+	if d.curIndex == 0 {
 		return []string{}
 	}
 
-	order := make([]string, d.index)
+	order := make([]string, d.curIndex)
 	for name, idx := range d.nameIndexes {
 		order[idx] = name
 	}

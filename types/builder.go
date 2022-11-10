@@ -82,11 +82,15 @@ func (b *RowBuilder) Build() (*Row, error) {
 
 	for tagK, _ := range row.Tags {
 		if isReservedColumn(tagK) {
-			return nil, errors.New("Tag or field name reserved column name in ceresdb")
+			return nil, fmt.Errorf("Tag name %s is reserved column name in ceresdb", tagK)
 		}
 	}
 
 	for fieldK, fieldV := range row.Fields {
+		if isReservedColumn(fieldK) {
+			return nil, fmt.Errorf("Field name %s is reserved column name in ceresdb", fieldK)
+		}
+
 		convertedFieldV, err := convertField(fieldV)
 		if err != nil {
 			return nil, fmt.Errorf("Not valid field %s:%v", fieldK, fieldV)

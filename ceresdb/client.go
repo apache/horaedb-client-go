@@ -8,7 +8,7 @@ import (
 )
 
 type CeresDBClient interface {
-	Query(context.Context, *types.QueryRequest) (types.QueryResponse, error)
+	Query(context.Context, types.QueryRequest) (types.QueryResponse, error)
 	Write(context.Context, []*types.Row) (types.WriteResponse, error)
 	Close() error
 }
