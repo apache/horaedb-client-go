@@ -20,8 +20,8 @@ func BuildRowsToPb(rows []*types.Row) (*ceresdbproto.WriteRequest, error) {
 					Metric:  row.Metric,
 					Entries: []*ceresdbproto.WriteEntry{},
 				},
-				tagDict:   nameDict{0, map[string]int{}},
-				fieldDict: nameDict{0, map[string]int{}},
+				orderedTags:   orderedNames{nameIndexes: map[string]int{}},
+				orderedFields: orderedNames{nameIndexes: map[string]int{}},
 			}
 			tuples[row.Metric] = tuple
 		}
@@ -32,7 +32,7 @@ func BuildRowsToPb(rows []*types.Row) (*ceresdbproto.WriteRequest, error) {
 		}
 
 		for tagK, tagV := range row.Tags {
-			idx := tuple.tagDict.insert(tagK)
+			idx := tuple.orderedTags.insert(tagK)
 			writeEntry.Tags = append(writeEntry.Tags, &ceresdbproto.Tag{
 				NameIndex: uint32(idx),
 				Value: &ceresdbproto.Value{
@@ -48,7 +48,7 @@ func BuildRowsToPb(rows []*types.Row) (*ceresdbproto.WriteRequest, error) {
 			Fields:    make([]*ceresdbproto.Field, 0, len(row.Fields)),
 		}
 		for fieldK, fieldV := range row.Fields {
-			idx := tuple.fieldDict.insert(fieldK)
+			idx := tuple.orderedFields.insert(fieldK)
 			pbV, err := buildPbValue(fieldV)
 			if err != nil {
 				return nil, err
@@ -67,8 +67,8 @@ func BuildRowsToPb(rows []*types.Row) (*ceresdbproto.WriteRequest, error) {
 		Metrics: make([]*ceresdbproto.WriteMetric, 0, len(tuples)),
 	}
 	for _, tuple := range tuples {
-		tuple.writeMetric.TagNames = tuple.tagDict.toOrdered()
-		tuple.writeMetric.FieldNames = tuple.fieldDict.toOrdered()
+		tuple.writeMetric.TagNames = tuple.orderedTags.toOrdered()
+		tuple.writeMetric.FieldNames = tuple.orderedFields.toOrdered()
 		writeRequest.Metrics = append(writeRequest.Metrics, &tuple.writeMetric)
 	}
 	return writeRequest, nil
@@ -154,18 +154,18 @@ func buildPbValue(v interface{}) (*ceresdbproto.Value, error) {
 }
 
 type writeTuple struct {
-	writeMetric ceresdbproto.WriteMetric
-	tagDict     nameDict
-	fieldDict   nameDict
+	writeMetric   ceresdbproto.WriteMetric
+	orderedTags   orderedNames
+	orderedFields orderedNames
 }
 
 // for sort keys
-type nameDict struct {
+type orderedNames struct {
 	curIndex    int            // cur largest curIndex
 	nameIndexes map[string]int // name -> curIndex
 }
 
-func (d *nameDict) insert(name string) int {
+func (d *orderedNames) insert(name string) int {
 	if idx, ok := d.nameIndexes[name]; ok {
 		return idx
 	} else {
@@ -176,7 +176,7 @@ func (d *nameDict) insert(name string) int {
 	}
 }
 
-func (d *nameDict) toOrdered() []string {
+func (d *orderedNames) toOrdered() []string {
 	if d.curIndex == 0 {
 		return []string{}
 	}
