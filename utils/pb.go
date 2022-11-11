@@ -160,6 +160,7 @@ type writeTuple struct {
 }
 
 // for sort keys
+// index grows linearly with the insertion order
 type orderedNames struct {
 	curIndex    int            // cur largest curIndex
 	nameIndexes map[string]int // name -> curIndex

@@ -9,6 +9,7 @@ import (
 
 type CeresDBClient interface {
 	Query(context.Context, types.QueryRequest) (types.QueryResponse, error)
+	// Note: Rows currently writing to the same timeline will be overwritten; this restriction will be removed shortly
 	Write(context.Context, []*types.Row) (types.WriteResponse, error)
 	Close() error
 }
