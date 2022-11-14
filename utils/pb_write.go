@@ -9,7 +9,7 @@ import (
 	"github.com/CeresDB/ceresdbproto/go/ceresdbproto"
 )
 
-func BuildRowsToPb(rows []*types.Row) (*ceresdbproto.WriteRequest, error) {
+func BuildPbWriteRequest(rows []*types.Row) (*ceresdbproto.WriteRequest, error) {
 	tuples := make(map[string]*writeTuple)
 
 	for _, row := range rows {
