@@ -36,7 +36,12 @@ func (r *QueryResponse) MapToRecord() []Record {
 	return records
 }
 
-// avro implementation
+/*
+avro implementation
+
+null type data type support
+https://github.com/CeresDB/ceresdb-client-go/issues/8
+*/
 type Record struct {
 	record map[string]interface{}
 }
@@ -60,7 +65,7 @@ func (r Record) GetBool(field string) (bool, error) {
 		return false, err
 	}
 	if vBool, ok := v.(bool); !ok {
-		return false, fmt.Errorf("Not a bool field Type %s", field)
+		return false, fmt.Errorf("Not a bool field type %s", field)
 	} else {
 		return vBool, nil
 	}
@@ -72,7 +77,7 @@ func (r Record) GetString(field string) (string, error) {
 		return "", err
 	}
 	if vString, ok := v.(string); !ok {
-		return "", fmt.Errorf("Not a string field Type %s", field)
+		return "", fmt.Errorf("Not a string field type %s", field)
 	} else {
 		return vString, nil
 	}
@@ -84,7 +89,7 @@ func (r Record) GetFloat64(field string) (float64, error) {
 		return 0, err
 	}
 	if vFloat64, ok := v.(float64); !ok {
-		return 0, fmt.Errorf("Not a float64 field Type %s", field)
+		return 0, fmt.Errorf("Not a float64 field type %s", field)
 	} else {
 		return vFloat64, nil
 	}
@@ -96,7 +101,7 @@ func (r Record) GetFloat32(field string) (float32, error) {
 		return 0, err
 	}
 	if vFloat32, ok := v.(float32); !ok {
-		return 0, fmt.Errorf("Not a float32 field Type %s", field)
+		return 0, fmt.Errorf("Not a float32 field type %s", field)
 	} else {
 		return vFloat32, nil
 	}
@@ -117,7 +122,7 @@ func (r Record) GetInt64(field string) (int64, error) {
 		return 0, err
 	}
 	if vInt64, ok := v.(int64); !ok {
-		return 0, fmt.Errorf("Not a int64 field Type %s", field)
+		return 0, fmt.Errorf("Not a int64 field type %s", field)
 	} else {
 		return vInt64, nil
 	}
@@ -129,7 +134,7 @@ func (r Record) GetInt32(field string) (int32, error) {
 		return 0, err
 	}
 	if vInt32, ok := v.(int32); !ok {
-		return 0, fmt.Errorf("Not a int32 field Type %s", field)
+		return 0, fmt.Errorf("Not a int32 field type %s", field)
 	} else {
 		return vInt32, nil
 	}

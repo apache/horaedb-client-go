@@ -7,10 +7,6 @@ import (
 	"github.com/CeresDB/ceresdb-client-go/types"
 )
 
-/*
-null type data type support
-https://github.com/CeresDB/ceresdb-client-go/issues/8
-*/
 type CeresDBClient interface {
 	Query(context.Context, types.QueryRequest) (types.QueryResponse, error)
 	// Note: Rows currently writing to the same timeline will be overwritten; this restriction will be removed shortly

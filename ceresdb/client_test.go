@@ -28,7 +28,7 @@ func now() int64 {
 func build2Rows() ([]*types.Row, error) {
 	rows := make([]*types.Row, 0, 2)
 
-	timestamp := int64(1668124800000)
+	timestamp := now()
 
 	builder := types.NewRowBuilder("ceresdb_test")
 
@@ -119,7 +119,7 @@ func TestBaseQuery(t *testing.T) {
 
 	timestamp, err := r1.GetTimestamp()
 	assert.NoError(t, err, "get timestamp fail")
-	assert.Equal(t, timestamp, int64(1668124800000), "timestamp int not expected")
+	assert.Greater(t, timestamp, int64(0), "timestamp int not expected")
 
 	t1, err := r1.GetString("t1")
 	assert.NoError(t, err, "get tag t1 fail")
