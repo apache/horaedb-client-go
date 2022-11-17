@@ -4,6 +4,7 @@ package ceresdb_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -25,13 +26,10 @@ func now() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 
-func build2Rows() ([]*types.Row, error) {
+func build2Rows(timestamp int64) ([]*types.Row, error) {
 	rows := make([]*types.Row, 0, 2)
 
-	timestamp := now()
-
 	builder := types.NewRowBuilder("ceresdb_test")
-
 	row1, err := builder.
 		SetTimestamp(timestamp).
 		AddTag("t1", "1A").
@@ -57,7 +55,7 @@ func build2Rows() ([]*types.Row, error) {
 	rows = append(rows, row1)
 
 	row2, err := builder.Reset().
-		SetTimestamp(timestamp+1000).
+		SetTimestamp(timestamp).
 		AddTag("t1", "1A").
 		AddTag("t2", "2B").
 		AddField("vbool", true).
@@ -83,11 +81,17 @@ func build2Rows() ([]*types.Row, error) {
 	return rows, nil
 }
 
-func TestBaseWrite(t *testing.T) {
+func TestBaseReadAndWrite(t *testing.T) {
+	timestamp := now()
+	testBaseWrite(t, timestamp)
+	testBaseQuery(t, timestamp)
+}
+
+func testBaseWrite(t *testing.T, timestamp int64) {
 	client, err := ceresdb.NewClient(endpoint)
 	assert.NoError(t, err, "init ceresb client failed")
 
-	rows, err := build2Rows()
+	rows, err := build2Rows(timestamp)
 	assert.NoError(t, err, "build rows failed")
 
 	resp, err := client.Write(context.Background(), rows)
@@ -96,16 +100,15 @@ func TestBaseWrite(t *testing.T) {
 	assert.Equal(t, resp.Success, uint32(2), "write success value is not expected")
 
 	t.Log("base write is paas")
-
 }
 
-func TestBaseQuery(t *testing.T) {
+func testBaseQuery(t *testing.T, timestamp int64) {
 	client, err := ceresdb.NewClient(endpoint)
 	assert.NoError(t, err, "init ceredb client failed")
 
 	req := types.QueryRequest{
 		Metrics: nil,
-		Ql:      `select * from ceresdb_test`,
+		Ql:      fmt.Sprintf("select * from ceresdb_test where timestamp = %d", timestamp),
 	}
 	resp, err := client.Query(context.Background(), req)
 	assert.NoError(t, err, "query rows failed")
@@ -117,9 +120,9 @@ func TestBaseQuery(t *testing.T) {
 
 	r1 := records[0]
 
-	timestamp, err := r1.GetTimestamp()
+	ts, err := r1.GetTimestamp()
 	assert.NoError(t, err, "get timestamp fail")
-	assert.Greater(t, timestamp, int64(0), "timestamp int not expected")
+	assert.Equal(t, ts, timestamp, "timestamp int not expected")
 
 	t1, err := r1.GetString("t1")
 	assert.NoError(t, err, "get tag t1 fail")
