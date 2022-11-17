@@ -4,7 +4,6 @@ package ceresdb
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/CeresDB/ceresdb-client-go/types"
@@ -39,15 +38,34 @@ func newClient(endpoint string, opts *options) (CeresDBClient, error) {
 	}, nil
 }
 
-// TODO
-// https://github.com/CeresDB/ceresdb-client-go/issues/1
-// next pr support
 func (c *clientImpl) Query(ctx context.Context, req types.QueryRequest) (types.QueryResponse, error) {
-	return types.QueryResponse{}, errors.New("not implemented")
+	queryRequest := &ceresdbproto.QueryRequest{
+		Metrics: req.Metrics,
+		Ql:      req.Ql,
+	}
+
+	queryResponse, err := c.inner.Query(ctx, queryRequest)
+	if err != nil {
+		return types.QueryResponse{}, err
+	}
+	if queryResponse.Header.Code != codeOk {
+		return types.QueryResponse{}, fmt.Errorf("query failed, code: %d, err: %s",
+			queryResponse.Header.Code, queryResponse.Header.Error)
+	}
+
+	rows, err := utils.ParseQueryResponse(queryResponse)
+	if err != nil {
+		return types.QueryResponse{}, err
+	}
+	return types.QueryResponse{
+		Ql:       req.Ql,
+		RowCount: uint32(len(rows)),
+		Rows:     rows,
+	}, nil
 }
 
 func (c *clientImpl) Write(ctx context.Context, rows []*types.Row) (types.WriteResponse, error) {
-	writeRequest, err := utils.BuildRowsToPb(rows)
+	writeRequest, err := utils.BuildPbWriteRequest(rows)
 	if err != nil {
 		return types.WriteResponse{}, err
 	}
@@ -56,7 +74,6 @@ func (c *clientImpl) Write(ctx context.Context, rows []*types.Row) (types.WriteR
 	if err != nil {
 		return types.WriteResponse{}, err
 	}
-
 	if writeResponse.Header.Code != codeOk {
 		return types.WriteResponse{}, fmt.Errorf("write failed, code: %d, err: %s",
 			writeResponse.Header.Code, writeResponse.Header.Error)
