@@ -4,10 +4,46 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/CeresDB/ceresdb-client-go/types"
 	"github.com/CeresDB/ceresdbproto/go/ceresdbproto"
 )
+
+func GetMetricsFromRows(rows []*types.Row) []string {
+	dict := make(map[string]byte)
+	metrics := make([]string, 0, len(rows))
+	for _, row := range rows {
+		if _, ok := dict[row.Metric]; !ok {
+			dict[row.Metric] = 0
+			metrics = append(metrics, row.Metric)
+		}
+	}
+	return metrics
+}
+
+func SplitRowsByRoute(rows []*types.Row, routes map[string]types.Route) (map[string][]*types.Row, error) {
+	rowsByRoute := make(map[string][]*types.Row, len(routes))
+	for _, row := range rows {
+		route, ok := routes[row.Metric]
+		if !ok {
+			return nil, fmt.Errorf("Route for metric %s not found", row.Metric)
+		}
+		if rows, ok := rowsByRoute[route.Endpoint]; ok {
+			rowsByRoute[route.Endpoint] = append(rows, row)
+		} else {
+			rowsByRoute[route.Endpoint] = []*types.Row{row}
+		}
+	}
+
+	return rowsByRoute, nil
+}
+
+func CombineWriteResponse(r1 types.WriteResponse, r2 types.WriteResponse) types.WriteResponse {
+	r1.Success = r1.Success + r2.Success
+	r1.Failed = r1.Failed + r2.Failed
+	return r1
+}
 
 func BuildPbWriteRequest(rows []*types.Row) (*ceresdbproto.WriteRequest, error) {
 	tuples := make(map[string]*writeTuple)

@@ -8,82 +8,74 @@ import (
 
 	"github.com/CeresDB/ceresdb-client-go/types"
 	"github.com/CeresDB/ceresdb-client-go/utils"
-	"github.com/CeresDB/ceresdbproto/go/ceresdbproto"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-)
-
-const (
-	codeOk = 200
 )
 
 type clientImpl struct {
-	inner ceresdbproto.StorageServiceClient
-	conn  *grpc.ClientConn
+	rpcClient   *rpcClient
+	routeClient *routeClient
 }
 
-func newClient(endpoint string, opts *options) (CeresDBClient, error) {
-	conn, err := grpc.Dial(endpoint,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(opts.RpcMaxRecvMsgSize)))
+func newClient(endpoint string, opts options) (CeresDBClient, error) {
+	rpcClient := newRpcClient(opts)
+	routeClient, err := newRouteClient(endpoint, rpcClient, opts)
 	if err != nil {
 		return nil, err
 	}
-
-	c := ceresdbproto.NewStorageServiceClient(conn)
-
 	return &clientImpl{
-		inner: c,
-		conn:  conn,
+		rpcClient:   rpcClient,
+		routeClient: routeClient,
 	}, nil
 }
 
 func (c *clientImpl) Query(ctx context.Context, req types.QueryRequest) (types.QueryResponse, error) {
-	queryRequest := &ceresdbproto.QueryRequest{
-		Metrics: req.Metrics,
-		Ql:      req.Ql,
+	if len(req.Metrics) == 0 {
+		return types.QueryResponse{}, types.ErrNullRequestMetrics
 	}
 
-	queryResponse, err := c.inner.Query(ctx, queryRequest)
+	routes, err := c.routeClient.RouteFor(req.Metrics)
 	if err != nil {
-		return types.QueryResponse{}, err
+		return types.QueryResponse{}, fmt.Errorf("Route metrics failed, metrics:%v, err:%v", req.Metrics, err)
 	}
-	if queryResponse.Header.Code != codeOk {
-		return types.QueryResponse{}, fmt.Errorf("query failed, code: %d, err: %s",
-			queryResponse.Header.Code, queryResponse.Header.Error)
+	for _, route := range routes {
+		queryResponse, err := c.rpcClient.Query(route.Endpoint, ctx, req)
+		if ceresdbErr, ok := err.(*types.CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
+			c.routeClient.ClearRouteFor(req.Metrics)
+		}
+		return queryResponse, err
 	}
-
-	rows, err := utils.ParseQueryResponse(queryResponse)
-	if err != nil {
-		return types.QueryResponse{}, err
-	}
-	return types.QueryResponse{
-		Ql:       req.Ql,
-		RowCount: uint32(len(rows)),
-		Rows:     rows,
-	}, nil
+	return types.QueryResponse{}, types.ErrEmptyRoute
 }
 
 func (c *clientImpl) Write(ctx context.Context, rows []*types.Row) (types.WriteResponse, error) {
-	writeRequest, err := utils.BuildPbWriteRequest(rows)
+	if len(rows) == 0 {
+		return types.WriteResponse{}, types.ErrNullRows
+	}
+
+	metrics := utils.GetMetricsFromRows(rows)
+
+	routes, err := c.routeClient.RouteFor(metrics)
+	if err != nil {
+		return types.WriteResponse{}, err
+	}
+	rowsByRoute, err := utils.SplitRowsByRoute(rows, routes)
 	if err != nil {
 		return types.WriteResponse{}, err
 	}
 
-	writeResponse, err := c.inner.Write(ctx, writeRequest)
-	if err != nil {
-		return types.WriteResponse{}, err
-	}
-	if writeResponse.Header.Code != codeOk {
-		return types.WriteResponse{}, fmt.Errorf("write failed, code: %d, err: %s",
-			writeResponse.Header.Code, writeResponse.Header.Error)
-	}
-	return types.WriteResponse{
-		Success: writeResponse.Success,
-		Failed:  writeResponse.Failed,
-	}, nil
-}
+	// TODO
+	// Convert to parallel write
+	ret := types.WriteResponse{}
+	for endpoint, rows := range rowsByRoute {
+		response, err := c.rpcClient.Write(endpoint, ctx, rows)
+		if err != nil {
+			if ceresdbErr, ok := err.(*types.CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
+				c.routeClient.ClearRouteFor(utils.GetMetricsFromRows(rows))
+			}
 
-func (c *clientImpl) Close() error {
-	return c.conn.Close()
+			ret = utils.CombineWriteResponse(ret, types.WriteResponse{Failed: uint32(len(rows))})
+			continue
+		}
+		ret = utils.CombineWriteResponse(ret, response)
+	}
+	return ret, nil
 }

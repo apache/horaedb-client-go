@@ -11,7 +11,6 @@ type CeresDBClient interface {
 	Query(context.Context, types.QueryRequest) (types.QueryResponse, error)
 	// Note: Rows currently writing to the same timeline will be overwritten; this restriction will be removed shortly
 	Write(context.Context, []*types.Row) (types.WriteResponse, error)
-	Close() error
 }
 
 func NewClient(endpoint string, opts ...Option) (CeresDBClient, error) {
@@ -19,5 +18,5 @@ func NewClient(endpoint string, opts ...Option) (CeresDBClient, error) {
 	for _, opt := range opts {
 		opt.apply(dopts)
 	}
-	return newClient(endpoint, dopts)
+	return newClient(endpoint, *dopts)
 }

@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/CeresDB/ceresdbproto/go/ceresdbproto v0.0.0-20220531034131-a7db8811a949
+	github.com/hashicorp/golang-lru v0.6.0
 	github.com/stretchr/testify v1.8.0
 	google.golang.org/grpc v1.43.0
 )

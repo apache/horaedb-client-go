@@ -1,10 +1,10 @@
 // Copyright 2022 CeresDB Project Authors. Licensed under Apache-2.0.
 
-package types
+package ceresdb
 
 import (
-	"errors"
 	"fmt"
+	"github.com/CeresDB/ceresdb-client-go/types"
 )
 
 const (
@@ -14,15 +14,15 @@ const (
 
 type RowBuilder struct {
 	metric string
-	row    *Row
+	row    *types.Row
 	built  bool
 }
 
 func NewRowBuilder(metric string) *RowBuilder {
 	return &RowBuilder{
 		metric: metric,
-		row: &Row{
-			Series: Series{
+		row: &types.Row{
+			Series: types.Series{
 				Metric: metric,
 				Tags:   make(map[string]string),
 			},
@@ -35,8 +35,8 @@ func NewRowBuilder(metric string) *RowBuilder {
 // reset bulider
 // The row can then be built again with the same metric
 func (b *RowBuilder) Reset() *RowBuilder {
-	b.row = &Row{
-		Series: Series{
+	b.row = &types.Row{
+		Series: types.Series{
 			Metric: b.metric,
 			Tags:   make(map[string]string),
 		},
@@ -61,39 +61,39 @@ func (b *RowBuilder) AddField(k string, v interface{}) *RowBuilder {
 	return b
 }
 
-func (b *RowBuilder) Build() (*Row, error) {
+func (b *RowBuilder) Build() (*types.Row, error) {
 	if b.built {
-		return nil, errors.New("Builder has been built, use new one or reset")
+		return nil, types.ErrBuiltBuilder
 	}
 
 	row := b.row
 
 	if row.Metric == "" {
-		return nil, errors.New("Metric should not be empty")
+		return nil, types.ErrRowEmptyMetric
 	}
 
 	if row.Timestamp <= 0 {
-		return nil, errors.New("Timestamp shoud not be empty")
+		return nil, types.ErrRowEmptyTimestamp
 	}
 
 	if len(row.Fields) == 0 {
-		return nil, errors.New("Fields should not be empty")
+		return nil, types.ErrRowEmptyFields
 	}
 
 	for tagK, _ := range row.Tags {
 		if isReservedColumn(tagK) {
-			return nil, fmt.Errorf("Tag name %s is reserved column name in ceresdb", tagK)
+			return nil, fmt.Errorf("Tag name is reserved column name in ceresdb, name:%s", tagK)
 		}
 	}
 
 	for fieldK, fieldV := range row.Fields {
 		if isReservedColumn(fieldK) {
-			return nil, fmt.Errorf("Field name %s is reserved column name in ceresdb", fieldK)
+			return nil, fmt.Errorf("Field name is reserved column name in ceresdb, name:%s", fieldK)
 		}
 
 		convertedFieldV, err := convertField(fieldV)
 		if err != nil {
-			return nil, fmt.Errorf("Not valid field %s:%v", fieldK, fieldV)
+			return nil, fmt.Errorf("Not valid field, key:%s, value:%v", fieldK, fieldV)
 		}
 		row.Fields[fieldK] = convertedFieldV
 	}
@@ -115,6 +115,6 @@ func convertField(v interface{}) (interface{}, error) {
 	case uint:
 		return uint64(v), nil
 	default:
-		return nil, errors.New("invalid field type")
+		return nil, types.ErrRowInvalidFieldType
 	}
 }
