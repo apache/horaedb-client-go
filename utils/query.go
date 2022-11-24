@@ -4,6 +4,7 @@ package utils
 
 import (
 	"errors"
+
 	"github.com/CeresDB/ceresdbproto/go/ceresdbproto"
 	"github.com/linkedin/goavro"
 )
@@ -33,3 +34,4 @@ func ParseQueryResponse(response *ceresdbproto.QueryResponse) ([]map[string]inte
 
 	return arvoRecords, nil
 }
+
