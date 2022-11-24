@@ -2,6 +2,8 @@
 default: build
 
 GO_TOOLS_BIN_PATH := $(shell pwd)/.tools/bin
+PATH := $(GO_TOOLS_BIN_PATH):$(PATH)
+SHELL := env PATH='$(PATH)' GOBIN='$(GO_TOOLS_BIN_PATH)' $(shell which bash)
 
 install-tools:
 	@mkdir -p $(GO_TOOLS_BIN_PATH)

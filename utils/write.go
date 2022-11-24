@@ -27,7 +27,7 @@ func SplitRowsByRoute(rows []*types.Row, routes map[string]types.Route) (map[str
 	for _, row := range rows {
 		route, ok := routes[row.Metric]
 		if !ok {
-			return nil, fmt.Errorf("Route for metric %s not found", row.Metric)
+			return nil, fmt.Errorf("route for metric %s not found", row.Metric)
 		}
 		if rows, ok := rowsByRoute[route.Endpoint]; ok {
 			rowsByRoute[route.Endpoint] = append(rows, row)
@@ -40,8 +40,8 @@ func SplitRowsByRoute(rows []*types.Row, routes map[string]types.Route) (map[str
 }
 
 func CombineWriteResponse(r1 types.WriteResponse, r2 types.WriteResponse) types.WriteResponse {
-	r1.Success = r1.Success + r2.Success
-	r1.Failed = r1.Failed + r2.Failed
+	r1.Success += r2.Success
+	r1.Failed += r2.Failed
 	return r1
 }
 
@@ -110,78 +110,78 @@ func BuildPbWriteRequest(rows []*types.Row) (*ceresdbproto.WriteRequest, error) 
 	return writeRequest, nil
 }
 
-func buildPbValue(v interface{}) (*ceresdbproto.Value, error) {
-	switch v.(type) {
+func buildPbValue(value interface{}) (*ceresdbproto.Value, error) {
+	switch v := value.(type) {
 	case bool:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_BoolValue{
-				v.(bool),
+				BoolValue: v,
 			},
 		}, nil
 	case string:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_StringValue{
-				v.(string),
+				StringValue: v,
 			},
 		}, nil
 	case float64:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Float64Value{
-				v.(float64),
+				Float64Value: v,
 			},
 		}, nil
 	case float32:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Float32Value{
-				v.(float32),
+				Float32Value: v,
 			},
 		}, nil
 	case int64:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Int64Value{
-				v.(int64),
+				Int64Value: v,
 			},
 		}, nil
 	case int32:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Int32Value{
-				v.(int32),
+				Int32Value: v,
 			},
 		}, nil
 	case int16:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Int16Value{
-				int32(v.(int16)),
+				Int16Value: int32(v),
 			},
 		}, nil
 	case int8:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Int8Value{
-				int32(v.(int8)),
+				Int8Value: int32(v),
 			},
 		}, nil
 	case uint64:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Uint64Value{
-				v.(uint64),
+				Uint64Value: v,
 			},
 		}, nil
 	case uint32:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Uint32Value{
-				v.(uint32),
+				Uint32Value: v,
 			},
 		}, nil
 	case uint16:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Uint16Value{
-				uint32(v.(uint16)),
+				Uint16Value: uint32(v),
 			},
 		}, nil
 	case uint8:
 		return &ceresdbproto.Value{
 			Value: &ceresdbproto.Value_Uint8Value{
-				uint32(v.(uint8)),
+				Uint8Value: uint32(v),
 			},
 		}, nil
 	default:
@@ -203,14 +203,14 @@ type orderedNames struct {
 }
 
 func (d *orderedNames) insert(name string) int {
-	if idx, ok := d.nameIndexes[name]; ok {
-		return idx
-	} else {
-		idx := d.curIndex
-		d.nameIndexes[name] = idx
-		d.curIndex = idx + 1
+	idx, ok := d.nameIndexes[name]
+	if ok {
 		return idx
 	}
+	idx = d.curIndex
+	d.nameIndexes[name] = idx
+	d.curIndex = idx + 1
+	return idx
 }
 
 func (d *orderedNames) toOrdered() []string {

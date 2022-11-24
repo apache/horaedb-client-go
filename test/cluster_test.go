@@ -21,6 +21,8 @@ func init() {
 }
 
 func TestClusterMultiMetricWriteAndQuery(t *testing.T) {
+	t.Skip("ignore local test")
+
 	client, err := ceresdb.NewClient(clusterEndpoint,
 		ceresdb.EnableLoggerDebug(true),
 	)
@@ -34,9 +36,9 @@ func TestClusterMultiMetricWriteAndQuery(t *testing.T) {
 	metric2Rows, err := build2Rows("ceresdb_route_test2", timestamp, 3)
 	require.NoError(t, err, "build metric2 rows failed")
 
-	rows := append(metric1Rows, metric2Rows...)
+	metric1Rows = append(metric1Rows, metric2Rows...)
 
-	resp, err := client.Write(context.Background(), rows)
+	resp, err := client.Write(context.Background(), metric1Rows)
 	require.NoError(t, err, "write rows failed")
 
 	require.Equal(t, resp.Success, uint32(5), "write success value is not expected")

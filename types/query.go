@@ -64,11 +64,11 @@ func (r Record) GetBool(field string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if vBool, ok := v.(bool); !ok {
-		return false, fmt.Errorf("Not a bool field type %s", field)
-	} else {
-		return vBool, nil
+	vBool, ok := v.(bool)
+	if !ok {
+		return false, fmt.Errorf("not a bool field type %s", field)
 	}
+	return vBool, nil
 }
 
 func (r Record) GetString(field string) (string, error) {
@@ -76,11 +76,11 @@ func (r Record) GetString(field string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if vString, ok := v.(string); !ok {
-		return "", fmt.Errorf("Not a string field type %s", field)
-	} else {
-		return vString, nil
+	vString, ok := v.(string)
+	if !ok {
+		return "", fmt.Errorf("not a string field type %s", field)
 	}
+	return vString, nil
 }
 
 func (r Record) GetFloat64(field string) (float64, error) {
@@ -88,11 +88,11 @@ func (r Record) GetFloat64(field string) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if vFloat64, ok := v.(float64); !ok {
-		return 0, fmt.Errorf("Not a float64 field type %s", field)
-	} else {
-		return vFloat64, nil
+	vFloat64, ok := v.(float64)
+	if !ok {
+		return 0, fmt.Errorf("not a float64 field type %s", field)
 	}
+	return vFloat64, nil
 }
 
 func (r Record) GetFloat32(field string) (float32, error) {
@@ -100,11 +100,11 @@ func (r Record) GetFloat32(field string) (float32, error) {
 	if err != nil {
 		return 0, err
 	}
-	if vFloat32, ok := v.(float32); !ok {
-		return 0, fmt.Errorf("Not a float32 field type %s", field)
-	} else {
-		return vFloat32, nil
+	vFloat32, ok := v.(float32)
+	if !ok {
+		return 0, fmt.Errorf("not a float32 field type %s", field)
 	}
+	return vFloat32, nil
 }
 
 // cast with int64
@@ -121,11 +121,11 @@ func (r Record) GetInt64(field string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if vInt64, ok := v.(int64); !ok {
-		return 0, fmt.Errorf("Not a int64 field type %s", field)
-	} else {
-		return vInt64, nil
+	vInt64, ok := v.(int64)
+	if !ok {
+		return 0, fmt.Errorf("not a int64 field type %s", field)
 	}
+	return vInt64, nil
 }
 
 func (r Record) GetInt32(field string) (int32, error) {
@@ -133,11 +133,11 @@ func (r Record) GetInt32(field string) (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	if vInt32, ok := v.(int32); !ok {
-		return 0, fmt.Errorf("Not a int32 field type %s", field)
-	} else {
-		return vInt32, nil
+	vInt32, ok := v.(int32)
+	if !ok {
+		return 0, fmt.Errorf("not a int32 field type %s", field)
 	}
+	return vInt32, nil
 }
 
 func (r Record) GetInt16(field string) (int16, error) {
@@ -203,10 +203,10 @@ func (r Record) GetUInt8(field string) (uint8, error) {
 	return uint8(vInt32), err
 }
 
-func (r Record) get(field, type_ string) (interface{}, error) {
+func (r Record) get(field, typ string) (interface{}, error) {
 	v, ok := r.record[field]
 	if !ok {
-		return nil, fmt.Errorf("Not found field %s", field)
+		return nil, fmt.Errorf("not found field %s", field)
 	}
 
 	/*
@@ -224,9 +224,9 @@ func (r Record) get(field, type_ string) (interface{}, error) {
 	if !ok {
 		return v, nil
 	}
-	realV, ok := mapV[type_]
+	realV, ok := mapV[typ]
 	if !ok {
-		return nil, fmt.Errorf("Not valid field type %s:%s", field, type_)
+		return nil, fmt.Errorf("not valid field type %s:%s", field, typ)
 	}
 	return realV, nil
 }

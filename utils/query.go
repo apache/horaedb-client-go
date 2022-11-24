@@ -11,7 +11,7 @@ import (
 
 func ParseQueryResponse(response *ceresdbproto.QueryResponse) ([]map[string]interface{}, error) {
 	if response.SchemaContent == "" {
-		return nil, errors.New("Empty schema content")
+		return nil, errors.New("empty schema content")
 	}
 
 	codec, err := goavro.NewCodec(response.SchemaContent)
@@ -27,11 +27,10 @@ func ParseQueryResponse(response *ceresdbproto.QueryResponse) ([]map[string]inte
 		}
 		arvoRecord, ok := v.(map[string]interface{})
 		if !ok {
-			return nil, errors.New("Response is not record type")
+			return nil, errors.New("response is not record type")
 		}
 		arvoRecords = append(arvoRecords, arvoRecord)
 	}
 
 	return arvoRecords, nil
 }
-
