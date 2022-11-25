@@ -15,8 +15,8 @@ type clientImpl struct {
 	routeClient *routeClient
 }
 
-func newClient(endpoint string, opts options) (CeresDBClient, error) {
-	rpcClient := newRpcClient(opts)
+func newClient(endpoint string, opts options) (Client, error) {
+	rpcClient := newRPCClient(opts)
 	routeClient, err := newRouteClient(endpoint, rpcClient, opts)
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func (c *clientImpl) Query(ctx context.Context, req types.QueryRequest) (types.Q
 		return types.QueryResponse{}, fmt.Errorf("Route metrics failed, metrics:%v, err:%v", req.Metrics, err)
 	}
 	for _, route := range routes {
-		queryResponse, err := c.rpcClient.Query(route.Endpoint, ctx, req)
+		queryResponse, err := c.rpcClient.Query(ctx, route.Endpoint, req)
 		if ceresdbErr, ok := err.(*types.CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
 			c.routeClient.ClearRouteFor(req.Metrics)
 		}
@@ -66,7 +66,7 @@ func (c *clientImpl) Write(ctx context.Context, rows []*types.Row) (types.WriteR
 	// Convert to parallel write
 	ret := types.WriteResponse{}
 	for endpoint, rows := range rowsByRoute {
-		response, err := c.rpcClient.Write(endpoint, ctx, rows)
+		response, err := c.rpcClient.Write(ctx, endpoint, rows)
 		if err != nil {
 			if ceresdbErr, ok := err.(*types.CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
 				c.routeClient.ClearRouteFor(utils.GetMetricsFromRows(rows))

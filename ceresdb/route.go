@@ -80,7 +80,7 @@ func (c *routeClient) RouteFreshFor(metrics []string) error {
 
 func (c *routeClient) ClearRouteFor(metrics []string) {
 	if c.opts.LoggerDebug {
-		c.opts.Logger.Write([]byte(fmt.Sprintf("Clear metrics route for refresh code, metrics:%v\n", metrics)))
+		_, _ = c.opts.Logger.Write([]byte(fmt.Sprintf("Clear metrics route for refresh code, metrics:%v\n", metrics)))
 	}
 	for _, metric := range metrics {
 		c.routeCache.Remove(metric)
@@ -89,6 +89,6 @@ func (c *routeClient) ClearRouteFor(metrics []string) {
 
 func (c *routeClient) OnEvict(metric, _ interface{}) {
 	if c.opts.LoggerDebug {
-		c.opts.Logger.Write([]byte(fmt.Sprintf("Clear metric route for evict, metric:%s\n", metric)))
+		_, _ = c.opts.Logger.Write([]byte(fmt.Sprintf("Clear metric route for evict, metric:%s\n", metric)))
 	}
 }

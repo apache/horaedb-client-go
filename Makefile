@@ -1,16 +1,35 @@
 
-test:
-	go clean -testcache && go test -v ./...
+default: build
 
-lint:
-	golangci-lint -v run
+GO_TOOLS_BIN_PATH := $(shell pwd)/.tools/bin
+PATH := $(GO_TOOLS_BIN_PATH):$(PATH)
+SHELL := env PATH='$(PATH)' GOBIN='$(GO_TOOLS_BIN_PATH)' $(shell which bash)
 
-tidy:
-	go mod tidy
+install-tools:
+	@mkdir -p $(GO_TOOLS_BIN_PATH)
+	@(which golangci-lint && golangci-lint version | grep '1.49') >/dev/null 2>&1 || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GO_TOOLS_BIN_PATH) v1.49.0
+	@grep '_' tools.go | sed 's/"//g' | awk '{print $$2}' | xargs go install
 
-check:
+PKG := github.com/CeresDB/ceresdb-client-go
+PACKAGES := $(shell go list ./... | tail -n +2)
+PACKAGE_DIRECTORIES := $(subst $(PKG)/,,$(PACKAGES))
+
+check: install-tools
 	@ echo "check license ..."
 	@ make check-license
+	@ echo "gofmt ..."
+	@ gofmt -s -l -d $(PACKAGE_DIRECTORIES) 2>&1 | awk '{ print } END { if (NR > 0) { exit 1 } }'
+	@ echo "golangci-lint ..."
+	@ golangci-lint run $(PACKAGE_DIRECTORIES)
+	@ echo "revive ..."
+	@ revive -formatter friendly -config revive.toml $(PACKAGES)
 
 check-license:
 	@ sh ./scripts/check-license.sh
+
+test: install-tools
+	@ echo "go test ..."
+	@ go test -timeout 5m -race -cover $(PACKAGES)
+
+tidy:
+	go mod tidy

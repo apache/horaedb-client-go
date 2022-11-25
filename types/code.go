@@ -8,15 +8,15 @@ import (
 )
 
 var (
-	ErrBuiltBuilder        = errors.New("Builder has been built, use new one or reset")
-	ErrRowEmptyMetric      = errors.New("Builder has been built, use new one or reset")
-	ErrRowEmptyTimestamp   = errors.New("Timestamp shoud not be empty")
-	ErrRowEmptyFields      = errors.New("Fields should not be empty")
-	ErrRowInvalidFieldType = errors.New("Filed invalid type")
-	ErrNullRows            = errors.New("Null rows")
-	ErrNullRouteMetrics    = errors.New("Null route metrics")
-	ErrNullRequestMetrics  = errors.New("Null request metrics")
-	ErrEmptyRoute          = errors.New("Empty route")
+	ErrBuiltBuilder        = errors.New("builder has been built, use new one or reset")
+	ErrRowEmptyMetric      = errors.New("builder has been built, use new one or reset")
+	ErrRowEmptyTimestamp   = errors.New("timestamp shoud not be empty")
+	ErrRowEmptyFields      = errors.New("fields should not be empty")
+	ErrRowInvalidFieldType = errors.New("filed invalid type")
+	ErrNullRows            = errors.New("null rows")
+	ErrNullRouteMetrics    = errors.New("null route metrics")
+	ErrNullRequestMetrics  = errors.New("null request metrics")
+	ErrEmptyRoute          = errors.New("empty route")
 )
 
 const (

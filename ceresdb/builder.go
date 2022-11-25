@@ -4,12 +4,13 @@ package ceresdb
 
 import (
 	"fmt"
+
 	"github.com/CeresDB/ceresdb-client-go/types"
 )
 
 const (
-	RESERVED_COLUMN_TSID      = "tsid"
-	RESERVED_COLUMN_TIMESTAMP = "timestamp"
+	ReservedColumnTsid      = "tsid"
+	ReservedColumnTimestamp = "timestamp"
 )
 
 type RowBuilder struct {
@@ -80,20 +81,20 @@ func (b *RowBuilder) Build() (*types.Row, error) {
 		return nil, types.ErrRowEmptyFields
 	}
 
-	for tagK, _ := range row.Tags {
+	for tagK := range row.Tags {
 		if isReservedColumn(tagK) {
-			return nil, fmt.Errorf("Tag name is reserved column name in ceresdb, name:%s", tagK)
+			return nil, fmt.Errorf("tag name is reserved column name in ceresdb, name:%s", tagK)
 		}
 	}
 
 	for fieldK, fieldV := range row.Fields {
 		if isReservedColumn(fieldK) {
-			return nil, fmt.Errorf("Field name is reserved column name in ceresdb, name:%s", fieldK)
+			return nil, fmt.Errorf("field name is reserved column name in ceresdb, name:%s", fieldK)
 		}
 
 		convertedFieldV, err := convertField(fieldV)
 		if err != nil {
-			return nil, fmt.Errorf("Not valid field, key:%s, value:%v", fieldK, fieldV)
+			return nil, fmt.Errorf("not valid field, key:%s, value:%v", fieldK, fieldV)
 		}
 		row.Fields[fieldK] = convertedFieldV
 	}
@@ -103,7 +104,7 @@ func (b *RowBuilder) Build() (*types.Row, error) {
 }
 
 func isReservedColumn(name string) bool {
-	return name == RESERVED_COLUMN_TSID || name == RESERVED_COLUMN_TIMESTAMP
+	return name == ReservedColumnTsid || name == ReservedColumnTimestamp
 }
 
 func convertField(v interface{}) (interface{}, error) {

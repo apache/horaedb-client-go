@@ -12,6 +12,8 @@ import (
 )
 
 func TestRouteGc(t *testing.T) {
+	t.Skip("ignore local test")
+
 	client, err := ceresdb.NewClient(endpoint,
 		ceresdb.EnableLoggerDebug(true),
 		ceresdb.WithRouteMaxCacheSize(3),
