@@ -30,15 +30,15 @@ func TestClusterMultiMetricWriteAndQuery(t *testing.T) {
 
 	timestamp := utils.CurrentMS()
 
-	metric1Rows, err := build2Rows("ceresdb_route_test1", timestamp, 2)
+	metricRows, err := build2Rows("ceresdb_route_test1", timestamp, 2)
 	require.NoError(t, err, "build metric1 rows failed")
 
 	metric2Rows, err := build2Rows("ceresdb_route_test2", timestamp, 3)
 	require.NoError(t, err, "build metric2 rows failed")
 
-	metric1Rows = append(metric1Rows, metric2Rows...)
+	metricRows = append(metricRows, metric2Rows...)
 
-	resp, err := client.Write(context.Background(), metric1Rows)
+	resp, err := client.Write(context.Background(), metricRows)
 	require.NoError(t, err, "write rows failed")
 
 	require.Equal(t, resp.Success, uint32(5), "write success value is not expected")

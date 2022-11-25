@@ -1,6 +1,6 @@
 module github.com/CeresDB/ceresdb-client-go
 
-go 1.19
+go 1.17
 
 require (
 	github.com/AlekSi/gocov-xml v1.1.0
