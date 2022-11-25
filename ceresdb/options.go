@@ -14,7 +14,7 @@ type Option interface {
 type options struct {
 	Logger            io.Writer
 	LoggerDebug       bool
-	RpcMaxRecvMsgSize int
+	RPCMaxRecvMsgSize int
 	RouteMaxCacheSize int
 }
 
@@ -36,7 +36,7 @@ func defaultOptions() *options {
 	return &options{
 		Logger:            os.Stdout,
 		LoggerDebug:       false,
-		RpcMaxRecvMsgSize: 1024 * 1024 * 1024,
+		RPCMaxRecvMsgSize: 1024 * 1024 * 1024,
 		RouteMaxCacheSize: 10 * 1000,
 	}
 }
@@ -53,9 +53,9 @@ func EnableLoggerDebug(enable bool) Option {
 	})
 }
 
-func WithRpcMaxRecvMsgSize(size int) Option {
+func WithRPCMaxRecvMsgSize(size int) Option {
 	return newFuncOption(func(o *options) {
-		o.RpcMaxRecvMsgSize = size
+		o.RPCMaxRecvMsgSize = size
 	})
 }
 

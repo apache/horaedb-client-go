@@ -4,19 +4,20 @@ package ceresdb
 
 import (
 	"context"
+
 	"github.com/CeresDB/ceresdb-client-go/types"
 )
 
-type CeresDBClient interface {
+type Client interface {
 	Query(context.Context, types.QueryRequest) (types.QueryResponse, error)
-	// Note: Rows currently writing to the same timeline will be overwritten; this restriction will be removed shortly
+	// Note: Rows currently writing to the same timeline will be overwritten, this restriction will be removed shortly.
 	Write(context.Context, []*types.Row) (types.WriteResponse, error)
 }
 
-func NewClient(endpoint string, opts ...Option) (CeresDBClient, error) {
-	dopts := defaultOptions()
+func NewClient(endpoint string, opts ...Option) (Client, error) {
+	defaultOpts := defaultOptions()
 	for _, opt := range opts {
-		opt.apply(dopts)
+		opt.apply(defaultOpts)
 	}
-	return newClient(endpoint, *dopts)
+	return newClient(endpoint, *defaultOpts)
 }

@@ -20,14 +20,14 @@ type rpcClient struct {
 	connPool sync.Map   // endpoint -> *grpc.ClientConn
 }
 
-func newRpcClient(opts options) *rpcClient {
+func newRPCClient(opts options) *rpcClient {
 	return &rpcClient{
 		opts:     opts,
 		connPool: sync.Map{},
 	}
 }
 
-func (c *rpcClient) Query(endpoint string, ctx context.Context, req types.QueryRequest) (types.QueryResponse, error) {
+func (c *rpcClient) Query(ctx context.Context, endpoint string, req types.QueryRequest) (types.QueryResponse, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
 		return types.QueryResponse{}, err
@@ -60,7 +60,7 @@ func (c *rpcClient) Query(endpoint string, ctx context.Context, req types.QueryR
 	}, nil
 }
 
-func (c *rpcClient) Write(endpoint string, ctx context.Context, rows []*types.Row) (types.WriteResponse, error) {
+func (c *rpcClient) Write(ctx context.Context, endpoint string, rows []*types.Row) (types.WriteResponse, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
 		return types.WriteResponse{}, err
@@ -138,7 +138,7 @@ func (c *rpcClient) newGrpcConn(endpoint string) (*grpc.ClientConn, error) {
 
 	conn, err := grpc.Dial(endpoint,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(c.opts.RpcMaxRecvMsgSize)))
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(c.opts.RPCMaxRecvMsgSize)))
 	if err != nil {
 		return nil, err
 	}
