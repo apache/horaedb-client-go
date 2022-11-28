@@ -11,7 +11,7 @@ import (
 
 func ParseQueryResponse(response *ceresdbproto.QueryResponse) ([]map[string]interface{}, error) {
 	if response.SchemaContent == "" {
-		return nil, errors.New("empty schema content")
+		return []map[string]interface{}{}, nil
 	}
 
 	codec, err := goavro.NewCodec(response.SchemaContent)
