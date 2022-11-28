@@ -10,6 +10,7 @@ import (
 )
 
 func ParseQueryResponse(response *ceresdbproto.QueryResponse) ([]map[string]interface{}, error) {
+	// schema is nil when SQL is DDL(such as create/drop table)
 	if response.SchemaContent == "" {
 		return []map[string]interface{}{}, nil
 	}
