@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/CeresDB/ceresdb-client-go/types"
-	"github.com/CeresDB/ceresdbproto/go/ceresdbproto"
+	"github.com/CeresDB/ceresdbproto/golang/pkg/storagepb"
 )
 
 func GetMetricsFromRows(rows []*types.Row) []string {
@@ -45,16 +45,16 @@ func CombineWriteResponse(r1 types.WriteResponse, r2 types.WriteResponse) types.
 	return r1
 }
 
-func BuildPbWriteRequest(rows []*types.Row) (*ceresdbproto.WriteRequest, error) {
+func BuildPbWriteRequest(rows []*types.Row) (*storagepb.WriteRequest, error) {
 	tuples := make(map[string]*writeTuple)
 
 	for _, row := range rows {
 		tuple, ok := tuples[row.Metric]
 		if !ok {
 			tuple = &writeTuple{
-				writeMetric: ceresdbproto.WriteMetric{
+				writeMetric: storagepb.WriteMetric{
 					Metric:  row.Metric,
-					Entries: []*ceresdbproto.WriteEntry{},
+					Entries: []*storagepb.WriteEntry{},
 				},
 				orderedTags:   orderedNames{nameIndexes: map[string]int{}},
 				orderedFields: orderedNames{nameIndexes: map[string]int{}},
@@ -62,26 +62,26 @@ func BuildPbWriteRequest(rows []*types.Row) (*ceresdbproto.WriteRequest, error) 
 			tuples[row.Metric] = tuple
 		}
 
-		writeEntry := &ceresdbproto.WriteEntry{
-			Tags:        make([]*ceresdbproto.Tag, 0, len(row.Tags)),
-			FieldGroups: make([]*ceresdbproto.FieldGroup, 0, 1),
+		writeEntry := &storagepb.WriteEntry{
+			Tags:        make([]*storagepb.Tag, 0, len(row.Tags)),
+			FieldGroups: make([]*storagepb.FieldGroup, 0, 1),
 		}
 
 		for tagK, tagV := range row.Tags {
 			idx := tuple.orderedTags.insert(tagK)
-			writeEntry.Tags = append(writeEntry.Tags, &ceresdbproto.Tag{
+			writeEntry.Tags = append(writeEntry.Tags, &storagepb.Tag{
 				NameIndex: uint32(idx),
-				Value: &ceresdbproto.Value{
-					Value: &ceresdbproto.Value_StringValue{
+				Value: &storagepb.Value{
+					Value: &storagepb.Value_StringValue{
 						StringValue: tagV,
 					},
 				},
 			})
 		}
 
-		fieldGroup := &ceresdbproto.FieldGroup{
+		fieldGroup := &storagepb.FieldGroup{
 			Timestamp: row.Timestamp,
-			Fields:    make([]*ceresdbproto.Field, 0, len(row.Fields)),
+			Fields:    make([]*storagepb.Field, 0, len(row.Fields)),
 		}
 		for fieldK, fieldV := range row.Fields {
 			idx := tuple.orderedFields.insert(fieldK)
@@ -89,18 +89,18 @@ func BuildPbWriteRequest(rows []*types.Row) (*ceresdbproto.WriteRequest, error) 
 			if err != nil {
 				return nil, err
 			}
-			fieldGroup.Fields = append(fieldGroup.Fields, &ceresdbproto.Field{
+			fieldGroup.Fields = append(fieldGroup.Fields, &storagepb.Field{
 				NameIndex: uint32(idx),
 				Value:     pbV,
 			})
 		}
-		writeEntry.FieldGroups = []*ceresdbproto.FieldGroup{fieldGroup}
+		writeEntry.FieldGroups = []*storagepb.FieldGroup{fieldGroup}
 
 		tuple.writeMetric.Entries = append(tuple.writeMetric.Entries, writeEntry)
 	}
 
-	writeRequest := &ceresdbproto.WriteRequest{
-		Metrics: make([]*ceresdbproto.WriteMetric, 0, len(tuples)),
+	writeRequest := &storagepb.WriteRequest{
+		Metrics: make([]*storagepb.WriteMetric, 0, len(tuples)),
 	}
 	for _, tuple := range tuples {
 		tuple.writeMetric.TagNames = tuple.orderedTags.toOrdered()
@@ -110,77 +110,77 @@ func BuildPbWriteRequest(rows []*types.Row) (*ceresdbproto.WriteRequest, error) 
 	return writeRequest, nil
 }
 
-func buildPbValue(value interface{}) (*ceresdbproto.Value, error) {
+func buildPbValue(value interface{}) (*storagepb.Value, error) {
 	switch v := value.(type) {
 	case bool:
-		return &ceresdbproto.Value{
-			Value: &ceresdbproto.Value_BoolValue{
+		return &storagepb.Value{
+			Value: &storagepb.Value_BoolValue{
 				BoolValue: v,
 			},
 		}, nil
 	case string:
-		return &ceresdbproto.Value{
-			Value: &ceresdbproto.Value_StringValue{
+		return &storagepb.Value{
+			Value: &storagepb.Value_StringValue{
 				StringValue: v,
 			},
 		}, nil
 	case float64:
-		return &ceresdbproto.Value{
-			Value: &ceresdbproto.Value_Float64Value{
+		return &storagepb.Value{
+			Value: &storagepb.Value_Float64Value{
 				Float64Value: v,
 			},
 		}, nil
 	case float32:
-		return &ceresdbproto.Value{
-			Value: &ceresdbproto.Value_Float32Value{
+		return &storagepb.Value{
+			Value: &storagepb.Value_Float32Value{
 				Float32Value: v,
 			},
 		}, nil
 	case int64:
-		return &ceresdbproto.Value{
-			Value: &ceresdbproto.Value_Int64Value{
+		return &storagepb.Value{
+			Value: &storagepb.Value_Int64Value{
 				Int64Value: v,
 			},
 		}, nil
 	case int32:
-		return &ceresdbproto.Value{
-			Value: &ceresdbproto.Value_Int32Value{
+		return &storagepb.Value{
+			Value: &storagepb.Value_Int32Value{
 				Int32Value: v,
 			},
 		}, nil
 	case int16:
-		return &ceresdbproto.Value{
-			Value: &ceresdbproto.Value_Int16Value{
+		return &storagepb.Value{
+			Value: &storagepb.Value_Int16Value{
 				Int16Value: int32(v),
 			},
 		}, nil
 	case int8:
-		return &ceresdbproto.Value{
-			Value: &ceresdbproto.Value_Int8Value{
+		return &storagepb.Value{
+			Value: &storagepb.Value_Int8Value{
 				Int8Value: int32(v),
 			},
 		}, nil
 	case uint64:
-		return &ceresdbproto.Value{
-			Value: &ceresdbproto.Value_Uint64Value{
+		return &storagepb.Value{
+			Value: &storagepb.Value_Uint64Value{
 				Uint64Value: v,
 			},
 		}, nil
 	case uint32:
-		return &ceresdbproto.Value{
-			Value: &ceresdbproto.Value_Uint32Value{
+		return &storagepb.Value{
+			Value: &storagepb.Value_Uint32Value{
 				Uint32Value: v,
 			},
 		}, nil
 	case uint16:
-		return &ceresdbproto.Value{
-			Value: &ceresdbproto.Value_Uint16Value{
+		return &storagepb.Value{
+			Value: &storagepb.Value_Uint16Value{
 				Uint16Value: uint32(v),
 			},
 		}, nil
 	case uint8:
-		return &ceresdbproto.Value{
-			Value: &ceresdbproto.Value_Uint8Value{
+		return &storagepb.Value{
+			Value: &storagepb.Value_Uint8Value{
 				Uint8Value: uint32(v),
 			},
 		}, nil
@@ -190,7 +190,7 @@ func buildPbValue(value interface{}) (*ceresdbproto.Value, error) {
 }
 
 type writeTuple struct {
-	writeMetric   ceresdbproto.WriteMetric
+	writeMetric   storagepb.WriteMetric
 	orderedTags   orderedNames
 	orderedFields orderedNames
 }

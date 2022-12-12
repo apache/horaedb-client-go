@@ -4,13 +4,13 @@ go 1.17
 
 require (
 	github.com/AlekSi/gocov-xml v1.1.0
-	github.com/CeresDB/ceresdbproto/go/ceresdbproto v0.0.0-20220531034131-a7db8811a949
+	github.com/CeresDB/ceresdbproto/golang v0.0.0-20221129093313-317dca741863
 	github.com/axw/gocov v1.1.0
 	github.com/hashicorp/golang-lru v0.6.0
 	github.com/mgechev/revive v1.2.4
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/tools v0.1.12
-	google.golang.org/grpc v1.43.0
+	google.golang.org/grpc v1.47.0
 	gotest.tools/gotestsum v1.8.2
 )
 
@@ -37,7 +37,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/golang/protobuf v1.5.0 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/linkedin/goavro v2.1.0+incompatible
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -45,6 +45,6 @@ require (
 	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
