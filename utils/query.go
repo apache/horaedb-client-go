@@ -5,11 +5,11 @@ package utils
 import (
 	"errors"
 
-	"github.com/CeresDB/ceresdbproto/go/ceresdbproto"
+	"github.com/CeresDB/ceresdbproto/golang/pkg/storagepb"
 	"github.com/linkedin/goavro"
 )
 
-func ParseQueryResponse(response *ceresdbproto.QueryResponse) ([]map[string]interface{}, error) {
+func ParseQueryResponse(response *storagepb.QueryResponse) ([]map[string]interface{}, error) {
 	// schema is nil when SQL is DDL(such as create/drop table)
 	if response.SchemaContent == "" {
 		return []map[string]interface{}{}, nil

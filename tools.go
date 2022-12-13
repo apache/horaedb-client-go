@@ -8,4 +8,5 @@ import (
 	_ "github.com/mgechev/revive"
 	_ "golang.org/x/tools/cmd/goimports"
 	_ "gotest.tools/gotestsum"
+	_ "github.com/CeresDB/ceresdbproto/golang/pkg/storagepb"
 )

@@ -9,7 +9,7 @@ import (
 
 	"github.com/CeresDB/ceresdb-client-go/types"
 	"github.com/CeresDB/ceresdb-client-go/utils"
-	"github.com/CeresDB/ceresdbproto/go/ceresdbproto"
+	"github.com/CeresDB/ceresdbproto/golang/pkg/storagepb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -32,9 +32,9 @@ func (c *rpcClient) Query(ctx context.Context, endpoint string, req types.QueryR
 	if err != nil {
 		return types.QueryResponse{}, err
 	}
-	grpcClient := ceresdbproto.NewStorageServiceClient(grpcConn)
+	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
-	queryRequest := &ceresdbproto.QueryRequest{
+	queryRequest := &storagepb.QueryRequest{
 		Metrics: req.Metrics,
 		Ql:      req.Ql,
 	}
@@ -65,7 +65,7 @@ func (c *rpcClient) Write(ctx context.Context, endpoint string, rows []*types.Ro
 	if err != nil {
 		return types.WriteResponse{}, err
 	}
-	grpcClient := ceresdbproto.NewStorageServiceClient(grpcConn)
+	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
 	writeRequest, err := utils.BuildPbWriteRequest(rows)
 	if err != nil {
@@ -92,9 +92,9 @@ func (c *rpcClient) Route(endpoint string, metrics []string) (map[string]types.R
 	if err != nil {
 		return nil, err
 	}
-	grpcClient := ceresdbproto.NewStorageServiceClient(grpcConn)
+	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
-	routeRequest := &ceresdbproto.RouteRequest{
+	routeRequest := &storagepb.RouteRequest{
 		Metrics: metrics,
 	}
 	routeResponse, err := grpcClient.Route(context.Background(), routeRequest)
