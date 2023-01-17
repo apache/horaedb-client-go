@@ -60,14 +60,14 @@ func (c *rpcClient) Query(ctx context.Context, endpoint string, req types.QueryR
 	}, nil
 }
 
-func (c *rpcClient) Write(ctx context.Context, endpoint string, rows []*types.Row) (types.WriteResponse, error) {
+func (c *rpcClient) Write(ctx context.Context, endpoint string, points []types.Point) (types.WriteResponse, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
 		return types.WriteResponse{}, err
 	}
 	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
-	writeRequest, err := utils.BuildPbWriteRequest(rows)
+	writeRequest, err := utils.BuildPbWriteRequest(points)
 	if err != nil {
 		return types.WriteResponse{}, err
 	}
@@ -87,7 +87,7 @@ func (c *rpcClient) Write(ctx context.Context, endpoint string, rows []*types.Ro
 	}, nil
 }
 
-func (c *rpcClient) Route(endpoint string, metrics []string) (map[string]types.Route, error) {
+func (c *rpcClient) Route(endpoint string, tables []string) (map[string]types.Route, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (c *rpcClient) Route(endpoint string, metrics []string) (map[string]types.R
 	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
 	routeRequest := &storagepb.RouteRequest{
-		Metrics: metrics,
+		Metrics: tables,
 	}
 	routeResponse, err := grpcClient.Route(context.Background(), routeRequest)
 	if err != nil {
@@ -112,7 +112,7 @@ func (c *rpcClient) Route(endpoint string, metrics []string) (map[string]types.R
 	for _, r := range routeResponse.Routes {
 		endpoint := fmt.Sprintf("%s:%d", r.Endpoint.Ip, r.Endpoint.Port)
 		routes[r.Metric] = types.Route{
-			Metric:   r.Metric,
+			Table:    r.Metric,
 			Endpoint: endpoint,
 			Ext:      r.Ext,
 		}

@@ -13,7 +13,7 @@ type routeClient struct {
 	opts       options
 	endpoint   string
 	rpcClient  *rpcClient
-	routeCache *lru.Cache // metric -> *Route
+	routeCache *lru.Cache // table -> *Route
 }
 
 func newRouteClient(endpoint string, rpcClient *rpcClient, opts options) (*routeClient, error) {
@@ -32,19 +32,19 @@ func newRouteClient(endpoint string, rpcClient *rpcClient, opts options) (*route
 	return routeClient, nil
 }
 
-func (c *routeClient) RouteFor(metrics []string) (map[string]types.Route, error) {
-	if len(metrics) == 0 {
+func (c *routeClient) RouteFor(tables []string) (map[string]types.Route, error) {
+	if len(tables) == 0 {
 		return nil, types.ErrNullRouteMetrics
 	}
 
-	local := make(map[string]types.Route, len(metrics))
-	misses := make([]string, 0, len(metrics))
+	local := make(map[string]types.Route, len(tables))
+	misses := make([]string, 0, len(tables))
 
-	for _, metric := range metrics {
-		if v, ok := c.routeCache.Get(metric); ok {
-			local[metric] = v.(types.Route)
+	for _, table := range tables {
+		if v, ok := c.routeCache.Get(table); ok {
+			local[table] = v.(types.Route)
 		} else {
-			misses = append(misses, metric)
+			misses = append(misses, table)
 		}
 	}
 
@@ -56,39 +56,39 @@ func (c *routeClient) RouteFor(metrics []string) (map[string]types.Route, error)
 		return nil, err
 	}
 
-	for _, metric := range misses {
-		if v, ok := c.routeCache.Get(metric); ok {
-			local[metric] = v.(types.Route)
+	for _, table := range misses {
+		if v, ok := c.routeCache.Get(table); ok {
+			local[table] = v.(types.Route)
 		} else {
-			return nil, fmt.Errorf("Route not found for metric:%s", metric)
+			return nil, fmt.Errorf("Route not found for table:%s", table)
 		}
 	}
 	return local, nil
 }
 
-func (c *routeClient) RouteFreshFor(metrics []string) error {
-	routes, err := c.rpcClient.Route(c.endpoint, metrics)
+func (c *routeClient) RouteFreshFor(tables []string) error {
+	routes, err := c.rpcClient.Route(c.endpoint, tables)
 	if err != nil {
 		return err
 	}
 
 	for _, route := range routes {
-		c.routeCache.Add(route.Metric, route)
+		c.routeCache.Add(route.Table, route)
 	}
 	return nil
 }
 
-func (c *routeClient) ClearRouteFor(metrics []string) {
+func (c *routeClient) ClearRouteFor(tables []string) {
 	if c.opts.LoggerDebug {
-		_, _ = c.opts.Logger.Write([]byte(fmt.Sprintf("Clear metrics route for refresh code, metrics:%v\n", metrics)))
+		_, _ = c.opts.Logger.Write([]byte(fmt.Sprintf("Clear tables route for refresh code, tables:%v\n", tables)))
 	}
-	for _, metric := range metrics {
-		c.routeCache.Remove(metric)
+	for _, table := range tables {
+		c.routeCache.Remove(table)
 	}
 }
 
-func (c *routeClient) OnEvict(metric, _ interface{}) {
+func (c *routeClient) OnEvict(table, _ interface{}) {
 	if c.opts.LoggerDebug {
-		_, _ = c.opts.Logger.Write([]byte(fmt.Sprintf("Clear metric route for evict, metric:%s\n", metric)))
+		_, _ = c.opts.Logger.Write([]byte(fmt.Sprintf("Clear table route for evict, table:%s\n", table)))
 	}
 }

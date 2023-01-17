@@ -3,7 +3,7 @@
 package types
 
 type Route struct {
-	Metric   string
+	Table    string
 	Endpoint string
 	Ext      []byte
 }

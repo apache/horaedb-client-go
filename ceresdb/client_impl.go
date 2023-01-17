@@ -46,18 +46,19 @@ func (c *clientImpl) Query(ctx context.Context, req types.QueryRequest) (types.Q
 	return types.QueryResponse{}, types.ErrEmptyRoute
 }
 
-func (c *clientImpl) Write(ctx context.Context, rows []*types.Row) (types.WriteResponse, error) {
-	if len(rows) == 0 {
+func (c *clientImpl) Write(ctx context.Context, request types.WriteRequest) (types.WriteResponse, error) {
+	if len(request.Points) == 0 {
 		return types.WriteResponse{}, types.ErrNullRows
 	}
 
-	metrics := utils.GetMetricsFromRows(rows)
+	tables := utils.GetTablesFromPoints(request.Points)
 
-	routes, err := c.routeClient.RouteFor(metrics)
+	routes, err := c.routeClient.RouteFor(tables)
 	if err != nil {
 		return types.WriteResponse{}, err
 	}
-	rowsByRoute, err := utils.SplitRowsByRoute(rows, routes)
+
+	pointsByRoute, err := utils.SplitPointsByRoute(request.Points, routes)
 	if err != nil {
 		return types.WriteResponse{}, err
 	}
@@ -65,14 +66,14 @@ func (c *clientImpl) Write(ctx context.Context, rows []*types.Row) (types.WriteR
 	// TODO
 	// Convert to parallel write
 	ret := types.WriteResponse{}
-	for endpoint, rows := range rowsByRoute {
-		response, err := c.rpcClient.Write(ctx, endpoint, rows)
+	for endpoint, points := range pointsByRoute {
+		response, err := c.rpcClient.Write(ctx, endpoint, points)
 		if err != nil {
 			if ceresdbErr, ok := err.(*types.CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
-				c.routeClient.ClearRouteFor(utils.GetMetricsFromRows(rows))
+				c.routeClient.ClearRouteFor(utils.GetTablesFromPoints(points))
 			}
 
-			ret = utils.CombineWriteResponse(ret, types.WriteResponse{Failed: uint32(len(rows))})
+			ret = utils.CombineWriteResponse(ret, types.WriteResponse{Failed: uint32(len(points))})
 			continue
 		}
 		ret = utils.CombineWriteResponse(ret, response)

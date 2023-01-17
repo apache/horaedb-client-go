@@ -8,11 +8,9 @@ import (
 )
 
 var (
-	ErrBuiltBuilder        = errors.New("builder has been built, use new one or reset")
-	ErrRowEmptyMetric      = errors.New("builder has been built, use new one or reset")
-	ErrRowEmptyTimestamp   = errors.New("timestamp shoud not be empty")
-	ErrRowEmptyFields      = errors.New("fields should not be empty")
-	ErrRowInvalidFieldType = errors.New("filed invalid type")
+	ErrPointEmptyTable     = errors.New("point table should not be empty")
+	ErrPointEmptyTimestamp = errors.New("point timestamp should not be empty")
+	ErrPointEmptyFields    = errors.New("point fields should not be empty")
 	ErrNullRows            = errors.New("null rows")
 	ErrNullRouteMetrics    = errors.New("null route metrics")
 	ErrNullRequestMetrics  = errors.New("null request metrics")

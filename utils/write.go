@@ -10,33 +10,33 @@ import (
 	"github.com/CeresDB/ceresdbproto/golang/pkg/storagepb"
 )
 
-func GetMetricsFromRows(rows []*types.Row) []string {
+func GetTablesFromPoints(points []types.Point) []string {
 	dict := make(map[string]byte)
-	metrics := make([]string, 0, len(rows))
-	for _, row := range rows {
-		if _, ok := dict[row.Metric]; !ok {
-			dict[row.Metric] = 0
-			metrics = append(metrics, row.Metric)
+	tables := make([]string, 0, len(points))
+	for _, point := range points {
+		if _, ok := dict[point.Table]; !ok {
+			dict[point.Table] = 0
+			tables = append(tables, point.Table)
 		}
 	}
-	return metrics
+	return tables
 }
 
-func SplitRowsByRoute(rows []*types.Row, routes map[string]types.Route) (map[string][]*types.Row, error) {
-	rowsByRoute := make(map[string][]*types.Row, len(routes))
-	for _, row := range rows {
-		route, ok := routes[row.Metric]
+func SplitPointsByRoute(points []types.Point, routes map[string]types.Route) (map[string][]types.Point, error) {
+	pointsByRoute := make(map[string][]types.Point, len(routes))
+	for _, point := range points {
+		route, ok := routes[point.Table]
 		if !ok {
-			return nil, fmt.Errorf("route for metric %s not found", row.Metric)
+			return nil, fmt.Errorf("route for table %s not found", point.Table)
 		}
-		if rows, ok := rowsByRoute[route.Endpoint]; ok {
-			rowsByRoute[route.Endpoint] = append(rows, row)
+		if rows, ok := pointsByRoute[route.Endpoint]; ok {
+			pointsByRoute[route.Endpoint] = append(rows, point)
 		} else {
-			rowsByRoute[route.Endpoint] = []*types.Row{row}
+			pointsByRoute[route.Endpoint] = []types.Point{point}
 		}
 	}
 
-	return rowsByRoute, nil
+	return pointsByRoute, nil
 }
 
 func CombineWriteResponse(r1 types.WriteResponse, r2 types.WriteResponse) types.WriteResponse {

@@ -2,7 +2,18 @@
 
 package types
 
+type WriteRequest struct {
+	Points []Point
+}
+
 type WriteResponse struct {
 	Success uint32
 	Failed  uint32
+}
+
+type Point struct {
+	Table     string
+	Timestamp int64
+	Tags      map[string]Value
+	Fields    map[string]Value
 }
