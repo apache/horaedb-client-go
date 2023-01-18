@@ -27,11 +27,11 @@ func createTable(client ceresdb.Client) error {
 	t timestamp NOT NULL,
 	TIMESTAMP KEY(t)) ENGINE=Analytic with (enable_ttl=false)`
 
-	req := types.QueryRequest{
-		Metrics: []string{"demo"},
-		Ql:      createTableSQL,
+	req := types.SqlQueryRequest{
+		Tables: []string{"demo"},
+		Sql:    createTableSQL,
 	}
-	_, err := client.Query(context.Background(), req)
+	_, err := client.SqlQuery(context.Background(), req)
 	if err != nil {
 		fmt.Printf("create table fail, err:%v\n", err)
 		return err
@@ -42,11 +42,11 @@ func createTable(client ceresdb.Client) error {
 
 func dropTable(client ceresdb.Client) error {
 	dropTableSQL := `DROP TABLE demo`
-	req := types.QueryRequest{
-		Metrics: []string{"demo"},
-		Ql:      dropTableSQL,
+	req := types.SqlQueryRequest{
+		Tables: []string{"demo"},
+		Sql:    dropTableSQL,
 	}
-	_, err := client.Query(context.Background(), req)
+	_, err := client.SqlQuery(context.Background(), req)
 	if err != nil {
 		fmt.Printf("drop table fail, err:%v\n", err)
 		return err
@@ -56,14 +56,28 @@ func dropTable(client ceresdb.Client) error {
 }
 
 func writeTable(client ceresdb.Client) error {
-	builder := ceresdb.NewRowBuilder("demo")
-	row, err := builder.
-		SetTimestamp(utils.CurrentMS()).AddTag("name", "test_tag1").AddField("value", 0.4242).Build()
+	builder := ceresdb.NewPointsBuilder("demo")
+	points, err := builder.
+		Add().
+		SetTimestamp(utils.CurrentMS()).
+		AddTag("name", types.NewStringValue("test_tag1")).
+		AddField("value", types.NewFloatValue(0.4242)).
+		Build().
+		Add().
+		SetTimestamp(utils.CurrentMS()).
+		AddTag("name", types.NewStringValue("test_tag2")).
+		AddField("value", types.NewFloatValue(0.2414)).
+		Build().
+		Build()
+
 	if err != nil {
 		fmt.Printf("write table build row fail, err:%v\n", err)
 		return err
 	}
-	resp, err := client.Write(context.Background(), []*types.Row{row})
+	req := types.WriteRequest{
+		Points: points,
+	}
+	resp, err := client.Write(context.Background(), req)
 	if err != nil {
 		fmt.Printf("write table fail, err:%v\n", err)
 		return err
@@ -78,11 +92,11 @@ func writeTable(client ceresdb.Client) error {
 
 func queryTable(client ceresdb.Client) error {
 	querySQL := `SELECT * FROM demo`
-	req := types.QueryRequest{
-		Metrics: []string{"demo"},
-		Ql:      querySQL,
+	req := types.SqlQueryRequest{
+		Tables: []string{"demo"},
+		Sql:    querySQL,
 	}
-	resp, err := client.Query(context.Background(), req)
+	resp, err := client.SqlQuery(context.Background(), req)
 	if err != nil {
 		fmt.Printf("query table fail, err:%v\n", err)
 		return err

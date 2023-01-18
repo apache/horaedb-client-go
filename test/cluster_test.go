@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/CeresDB/ceresdb-client-go/ceresdb"
+	"github.com/CeresDB/ceresdb-client-go/types"
 	"github.com/CeresDB/ceresdb-client-go/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -30,15 +31,18 @@ func TestClusterMultiMetricWriteAndQuery(t *testing.T) {
 
 	timestamp := utils.CurrentMS()
 
-	metricRows, err := build2Rows("ceresdb_route_test1", timestamp, 2)
+	table1Points, err := buildPoints("ceresdb_route_test1", timestamp, 2)
 	require.NoError(t, err, "build metric1 rows failed")
 
-	metric2Rows, err := build2Rows("ceresdb_route_test2", timestamp, 3)
+	table2Points, err := buildPoints("ceresdb_route_test2", timestamp, 3)
 	require.NoError(t, err, "build metric2 rows failed")
 
-	metricRows = append(metricRows, metric2Rows...)
+	points := append(table1Points, table2Points...)
 
-	resp, err := client.Write(context.Background(), metricRows)
+	req := types.WriteRequest{
+		Points: points,
+	}
+	resp, err := client.Write(context.Background(), req)
 	require.NoError(t, err, "write rows failed")
 
 	require.Equal(t, resp.Success, uint32(5), "write success value is not expected")

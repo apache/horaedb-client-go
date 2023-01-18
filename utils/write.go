@@ -45,46 +45,52 @@ func CombineWriteResponse(r1 types.WriteResponse, r2 types.WriteResponse) types.
 	return r1
 }
 
-func BuildPbWriteRequest(rows []*types.Row) (*storagepb.WriteRequest, error) {
+func BuildPbWriteRequest(points []types.Point) (*storagepb.WriteRequest, error) {
 	tuples := make(map[string]*writeTuple)
 
-	for _, row := range rows {
-		tuple, ok := tuples[row.Metric]
+	for _, point := range points {
+		tuple, ok := tuples[point.Table]
 		if !ok {
 			tuple = &writeTuple{
-				writeMetric: storagepb.WriteMetric{
-					Metric:  row.Metric,
-					Entries: []*storagepb.WriteEntry{},
+				writeTableReq: storagepb.WriteTableRequest{
+					Table:   point.Table,
+					Entries: []*storagepb.WriteSeriesEntry{},
 				},
 				orderedTags:   orderedNames{nameIndexes: map[string]int{}},
 				orderedFields: orderedNames{nameIndexes: map[string]int{}},
 			}
-			tuples[row.Metric] = tuple
+			tuples[point.Table] = tuple
 		}
 
-		writeEntry := &storagepb.WriteEntry{
-			Tags:        make([]*storagepb.Tag, 0, len(row.Tags)),
+		writeEntry := &storagepb.WriteSeriesEntry{
+			Tags:        make([]*storagepb.Tag, 0, len(point.Tags)),
 			FieldGroups: make([]*storagepb.FieldGroup, 0, 1),
 		}
 
-		for tagK, tagV := range row.Tags {
+		for tagK, tagV := range point.Tags {
 			idx := tuple.orderedTags.insert(tagK)
+			if tagV.IsNull() {
+				continue
+			}
 			writeEntry.Tags = append(writeEntry.Tags, &storagepb.Tag{
 				NameIndex: uint32(idx),
 				Value: &storagepb.Value{
 					Value: &storagepb.Value_StringValue{
-						StringValue: tagV,
+						StringValue: tagV.Value().(string),
 					},
 				},
 			})
 		}
 
 		fieldGroup := &storagepb.FieldGroup{
-			Timestamp: row.Timestamp,
-			Fields:    make([]*storagepb.Field, 0, len(row.Fields)),
+			Timestamp: point.Timestamp,
+			Fields:    make([]*storagepb.Field, 0, len(point.Fields)),
 		}
-		for fieldK, fieldV := range row.Fields {
+		for fieldK, fieldV := range point.Fields {
 			idx := tuple.orderedFields.insert(fieldK)
+			if fieldV.IsNull() {
+				continue
+			}
 			pbV, err := buildPbValue(fieldV)
 			if err != nil {
 				return nil, err
@@ -96,92 +102,98 @@ func BuildPbWriteRequest(rows []*types.Row) (*storagepb.WriteRequest, error) {
 		}
 		writeEntry.FieldGroups = []*storagepb.FieldGroup{fieldGroup}
 
-		tuple.writeMetric.Entries = append(tuple.writeMetric.Entries, writeEntry)
+		tuple.writeTableReq.Entries = append(tuple.writeTableReq.Entries, writeEntry)
 	}
 
 	writeRequest := &storagepb.WriteRequest{
-		Metrics: make([]*storagepb.WriteMetric, 0, len(tuples)),
+		TableRequests: make([]*storagepb.WriteTableRequest, 0, len(tuples)),
 	}
 	for _, tuple := range tuples {
-		tuple.writeMetric.TagNames = tuple.orderedTags.toOrdered()
-		tuple.writeMetric.FieldNames = tuple.orderedFields.toOrdered()
-		writeRequest.Metrics = append(writeRequest.Metrics, &tuple.writeMetric)
+		tuple.writeTableReq.TagNames = tuple.orderedTags.toOrdered()
+		tuple.writeTableReq.FieldNames = tuple.orderedFields.toOrdered()
+		writeRequest.TableRequests = append(writeRequest.TableRequests, &tuple.writeTableReq)
 	}
 	return writeRequest, nil
 }
 
-func buildPbValue(value interface{}) (*storagepb.Value, error) {
-	switch v := value.(type) {
-	case bool:
+func buildPbValue(v types.Value) (*storagepb.Value, error) {
+	switch v.DataType() {
+	case types.BOOL:
 		return &storagepb.Value{
 			Value: &storagepb.Value_BoolValue{
-				BoolValue: v,
+				BoolValue: v.BoolValue(),
 			},
 		}, nil
-	case string:
+	case types.STRING:
 		return &storagepb.Value{
 			Value: &storagepb.Value_StringValue{
-				StringValue: v,
+				StringValue: v.StringValue(),
 			},
 		}, nil
-	case float64:
+	case types.DOUBLE:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Float64Value{
-				Float64Value: v,
+				Float64Value: v.DoubleValue(),
 			},
 		}, nil
-	case float32:
+	case types.FLOAT:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Float32Value{
-				Float32Value: v,
+				Float32Value: v.FloatValue(),
 			},
 		}, nil
-	case int64:
+	case types.INT64:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Int64Value{
-				Int64Value: v,
+				Int64Value: v.Int64Value(),
 			},
 		}, nil
-	case int32:
+	case types.INT32:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Int32Value{
-				Int32Value: v,
+				Int32Value: v.Int32Value(),
 			},
 		}, nil
-	case int16:
+	case types.INT16:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Int16Value{
-				Int16Value: int32(v),
+				Int16Value: int32(v.Int16Value()),
 			},
 		}, nil
-	case int8:
+	case types.INT8:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Int8Value{
-				Int8Value: int32(v),
+				Int8Value: int32(v.Int8Value()),
 			},
 		}, nil
-	case uint64:
+	case types.UINT64:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Uint64Value{
-				Uint64Value: v,
+				Uint64Value: v.Uint64Value(),
 			},
 		}, nil
-	case uint32:
+	case types.UINT32:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Uint32Value{
-				Uint32Value: v,
+				Uint32Value: v.Uint32Value(),
 			},
 		}, nil
-	case uint16:
+	case types.UINT16:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Uint16Value{
-				Uint16Value: uint32(v),
+				Uint16Value: uint32(v.Uint16Value()),
 			},
 		}, nil
-	case uint8:
+	case types.UINT8:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Uint8Value{
-				Uint8Value: uint32(v),
+				Uint8Value: uint32(v.Uint8Value()),
+			},
+		}, nil
+	case types.VARBINARY:
+		return &storagepb.Value{
+			Value: &storagepb.Value_VarbinaryValue{
+				VarbinaryValue: v.VarbinaryValue(),
 			},
 		}, nil
 	default:
@@ -190,7 +202,7 @@ func buildPbValue(value interface{}) (*storagepb.Value, error) {
 }
 
 type writeTuple struct {
-	writeMetric   storagepb.WriteMetric
+	writeTableReq storagepb.WriteTableRequest
 	orderedTags   orderedNames
 	orderedFields orderedNames
 }

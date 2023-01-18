@@ -34,7 +34,7 @@ func newRouteClient(endpoint string, rpcClient *rpcClient, opts options) (*route
 
 func (c *routeClient) RouteFor(tables []string) (map[string]types.Route, error) {
 	if len(tables) == 0 {
-		return nil, types.ErrNullRouteMetrics
+		return nil, types.ErrNullRouteTables
 	}
 
 	local := make(map[string]types.Route, len(tables))

@@ -81,6 +81,7 @@ func (b *PointBuilder) AddField(k string, v types.Value) *PointBuilder {
 }
 
 func (b *PointBuilder) Build() *PointsBuilder {
+	b.parent.points = append(b.parent.points, b.point)
 	return b.parent
 }
 

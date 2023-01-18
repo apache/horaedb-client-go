@@ -12,9 +12,10 @@ var (
 	ErrPointEmptyTimestamp = errors.New("point timestamp should not be empty")
 	ErrPointEmptyFields    = errors.New("point fields should not be empty")
 	ErrNullRows            = errors.New("null rows")
-	ErrNullRouteMetrics    = errors.New("null route metrics")
-	ErrNullRequestMetrics  = errors.New("null request metrics")
+	ErrNullRouteTables     = errors.New("null route tables")
+	ErrNullRequestTables   = errors.New("null request tables")
 	ErrEmptyRoute          = errors.New("empty route")
+	ErrOnlyArrowSupport    = errors.New("only arrow support now")
 )
 
 const (

@@ -27,36 +27,42 @@ func newRPCClient(opts options) *rpcClient {
 	}
 }
 
-func (c *rpcClient) Query(ctx context.Context, endpoint string, req types.QueryRequest) (types.QueryResponse, error) {
+func (c *rpcClient) SqlQuery(ctx context.Context, endpoint string, req types.SqlQueryRequest) (types.SqlQueryResponse, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
-		return types.QueryResponse{}, err
+		return types.SqlQueryResponse{}, err
 	}
 	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
-	queryRequest := &storagepb.QueryRequest{
-		Metrics: req.Metrics,
-		Ql:      req.Ql,
+	queryRequest := &storagepb.SqlQueryRequest{
+		Tables: req.Tables,
+		Sql:    req.Sql,
 	}
-	queryResponse, err := grpcClient.Query(ctx, queryRequest)
+	queryResponse, err := grpcClient.SqlQuery(ctx, queryRequest)
 	if err != nil {
-		return types.QueryResponse{}, err
+		return types.SqlQueryResponse{}, err
 	}
 	if queryResponse.Header.Code != types.CodeSuccess {
-		return types.QueryResponse{}, &types.CeresdbError{
+		return types.SqlQueryResponse{}, &types.CeresdbError{
 			Code: queryResponse.Header.Code,
 			Err:  queryResponse.Header.Error,
 		}
 	}
 
+	if affectedPayload, ok := queryResponse.Output.(*storagepb.SqlQueryResponse_AffectedRows); ok {
+		return types.SqlQueryResponse{
+			Sql:          req.Sql,
+			AffectedRows: affectedPayload.AffectedRows,
+		}, nil
+	}
+
 	rows, err := utils.ParseQueryResponse(queryResponse)
 	if err != nil {
-		return types.QueryResponse{}, err
+		return types.SqlQueryResponse{}, err
 	}
-	return types.QueryResponse{
-		Ql:       req.Ql,
-		RowCount: uint32(len(rows)),
-		Rows:     rows,
+	return types.SqlQueryResponse{
+		Sql:  req.Sql,
+		Rows: rows,
 	}, nil
 }
 
@@ -95,7 +101,7 @@ func (c *rpcClient) Route(endpoint string, tables []string) (map[string]types.Ro
 	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
 	routeRequest := &storagepb.RouteRequest{
-		Metrics: tables,
+		Tables: tables,
 	}
 	routeResponse, err := grpcClient.Route(context.Background(), routeRequest)
 	if err != nil {
@@ -111,8 +117,8 @@ func (c *rpcClient) Route(endpoint string, tables []string) (map[string]types.Ro
 	routes := make(map[string]types.Route, len(routeResponse.Routes))
 	for _, r := range routeResponse.Routes {
 		endpoint := fmt.Sprintf("%s:%d", r.Endpoint.Ip, r.Endpoint.Port)
-		routes[r.Metric] = types.Route{
-			Table:    r.Metric,
+		routes[r.Table] = types.Route{
+			Table:    r.Table,
 			Endpoint: endpoint,
 			Ext:      r.Ext,
 		}

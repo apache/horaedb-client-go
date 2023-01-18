@@ -2,17 +2,29 @@
 
 package types
 
-type QueryRequest struct {
-	Metrics []string
-	Ql      string
+type SqlQueryRequest struct {
+	Tables []string
+	Sql    string
 }
 
-type QueryResponse struct {
-	Ql       string
-	RowCount uint32
-	Rows     []Row
+type SqlQueryResponse struct {
+	Sql          string
+	AffectedRows uint32
+	Rows         []Row
 }
 
 type Row struct {
-	Values []Value
+	Values map[string]Value
+}
+
+func (r Row) HasColumn(column string) bool {
+	_, ok := r.Values[column]
+	return ok
+}
+
+func (r Row) ColumnValue(column string) Value {
+	if v, ok := r.Values[column]; ok {
+		return v
+	}
+	return Value{}
 }
