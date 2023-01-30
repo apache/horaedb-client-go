@@ -46,40 +46,48 @@ func CombineWriteResponse(r1 types.WriteResponse, r2 types.WriteResponse) types.
 }
 
 func BuildPbWriteRequest(points []types.Point) (*storagepb.WriteRequest, error) {
-	tuples := make(map[string]*writeTuple)
+	tuples := make(map[string]*writeTuple) // table -> tuple
 
 	for _, point := range points {
 		tuple, ok := tuples[point.Table]
 		if !ok {
 			tuple = &writeTuple{
-				writeTableReq: storagepb.WriteTableRequest{
-					Table:   point.Table,
-					Entries: []*storagepb.WriteSeriesEntry{},
-				},
-				orderedTags:   orderedNames{nameIndexes: map[string]int{}},
-				orderedFields: orderedNames{nameIndexes: map[string]int{}},
+				writeSeriesEntries: map[string]*storagepb.WriteSeriesEntry{},
+				orderedTags:        orderedNames{nameIndexes: map[string]int{}},
+				orderedFields:      orderedNames{nameIndexes: map[string]int{}},
 			}
 			tuples[point.Table] = tuple
 		}
 
-		writeEntry := &storagepb.WriteSeriesEntry{
-			Tags:        make([]*storagepb.Tag, 0, len(point.Tags)),
-			FieldGroups: make([]*storagepb.FieldGroup, 0, 1),
+		seriesKey := ""
+		for tagK, _ := range point.Tags {
+			tuple.orderedTags.insert(tagK)
+		}
+		for _, orderedTag := range tuple.orderedTags.toOrdered() {
+			seriesKey += point.Tags[orderedTag].StringValue()
 		}
 
-		for tagK, tagV := range point.Tags {
-			idx := tuple.orderedTags.insert(tagK)
-			if tagV.IsNull() {
-				continue
+		writeEntry, ok := tuple.writeSeriesEntries[seriesKey]
+		if !ok {
+			writeEntry = &storagepb.WriteSeriesEntry{
+				Tags:        make([]*storagepb.Tag, 0, len(point.Tags)),
+				FieldGroups: make([]*storagepb.FieldGroup, 0, 1),
 			}
-			writeEntry.Tags = append(writeEntry.Tags, &storagepb.Tag{
-				NameIndex: uint32(idx),
-				Value: &storagepb.Value{
-					Value: &storagepb.Value_StringValue{
-						StringValue: tagV.Value().(string),
+			for idx, orderedTag := range tuple.orderedTags.toOrdered() {
+				tagV := point.Tags[orderedTag]
+				if tagV.IsNull() {
+					continue
+				}
+				writeEntry.Tags = append(writeEntry.Tags, &storagepb.Tag{
+					NameIndex: uint32(idx),
+					Value: &storagepb.Value{
+						Value: &storagepb.Value_StringValue{
+							StringValue: tagV.StringValue(),
+						},
 					},
-				},
-			})
+				})
+			}
+			tuple.writeSeriesEntries[seriesKey] = writeEntry
 		}
 
 		fieldGroup := &storagepb.FieldGroup{
@@ -100,18 +108,23 @@ func BuildPbWriteRequest(points []types.Point) (*storagepb.WriteRequest, error) 
 				Value:     pbV,
 			})
 		}
-		writeEntry.FieldGroups = []*storagepb.FieldGroup{fieldGroup}
-
-		tuple.writeTableReq.Entries = append(tuple.writeTableReq.Entries, writeEntry)
+		writeEntry.FieldGroups = append(writeEntry.FieldGroups, fieldGroup)
 	}
 
 	writeRequest := &storagepb.WriteRequest{
 		TableRequests: make([]*storagepb.WriteTableRequest, 0, len(tuples)),
 	}
-	for _, tuple := range tuples {
-		tuple.writeTableReq.TagNames = tuple.orderedTags.toOrdered()
-		tuple.writeTableReq.FieldNames = tuple.orderedFields.toOrdered()
-		writeRequest.TableRequests = append(writeRequest.TableRequests, &tuple.writeTableReq)
+	for table, tuple := range tuples {
+		writeTableReq := storagepb.WriteTableRequest{
+			Table:   table,
+			Entries: []*storagepb.WriteSeriesEntry{},
+		}
+		writeTableReq.TagNames = tuple.orderedTags.toOrdered()
+		writeTableReq.FieldNames = tuple.orderedFields.toOrdered()
+		for _, writeSeriesEntry := range tuple.writeSeriesEntries {
+			writeTableReq.Entries = append(writeTableReq.Entries, writeSeriesEntry)
+		}
+		writeRequest.TableRequests = append(writeRequest.TableRequests, &writeTableReq)
 	}
 	return writeRequest, nil
 }
@@ -202,9 +215,9 @@ func buildPbValue(v types.Value) (*storagepb.Value, error) {
 }
 
 type writeTuple struct {
-	writeTableReq storagepb.WriteTableRequest
-	orderedTags   orderedNames
-	orderedFields orderedNames
+	writeSeriesEntries map[string]*storagepb.WriteSeriesEntry // seriesKey -> entry
+	orderedTags        orderedNames
+	orderedFields      orderedNames
 }
 
 // for sort keys

@@ -61,8 +61,9 @@ func (c *rpcClient) SqlQuery(ctx context.Context, endpoint string, req types.Sql
 		return types.SqlQueryResponse{}, err
 	}
 	return types.SqlQueryResponse{
-		Sql:  req.Sql,
-		Rows: rows,
+		Sql:          req.Sql,
+		AffectedRows: queryResponse.GetAffectedRows(),
+		Rows:         rows,
 	}, nil
 }
 

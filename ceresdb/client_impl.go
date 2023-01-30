@@ -34,7 +34,7 @@ func (c *clientImpl) SqlQuery(ctx context.Context, req types.SqlQueryRequest) (t
 
 	routes, err := c.routeClient.RouteFor(req.Tables)
 	if err != nil {
-		return types.SqlQueryResponse{}, fmt.Errorf("Route metrics failed, metrics:%v, err:%v", req.Tables, err)
+		return types.SqlQueryResponse{}, fmt.Errorf("Route tables failed, tables:%v, err:%v", req.Tables, err)
 	}
 	for _, route := range routes {
 		queryResponse, err := c.rpcClient.SqlQuery(ctx, route.Endpoint, req)

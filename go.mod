@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/AlekSi/gocov-xml v1.1.0
-	github.com/CeresDB/ceresdbproto/golang v0.0.0-20221129093313-317dca741863
+	github.com/CeresDB/ceresdbproto/golang v0.0.0-20230130094457-55495dd395d1
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40
 	github.com/axw/gocov v1.1.0
 	github.com/hashicorp/golang-lru v0.6.0
@@ -51,5 +51,3 @@ require (
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/CeresDB/ceresdbproto/golang => github.com/mrrtree/ceresdbproto/golang v0.0.0-20230119064736-89e166b30779

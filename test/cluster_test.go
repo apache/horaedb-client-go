@@ -21,7 +21,7 @@ func init() {
 	}
 }
 
-func TestClusterMultiMetricWriteAndQuery(t *testing.T) {
+func TestClusterMultiWriteAndQuery(t *testing.T) {
 	t.Skip("ignore local test")
 
 	client, err := ceresdb.NewClient(clusterEndpoint,
@@ -32,10 +32,10 @@ func TestClusterMultiMetricWriteAndQuery(t *testing.T) {
 	timestamp := utils.CurrentMS()
 
 	table1Points, err := buildPoints("ceresdb_route_test1", timestamp, 2)
-	require.NoError(t, err, "build metric1 rows failed")
+	require.NoError(t, err, "build table1 points failed")
 
 	table2Points, err := buildPoints("ceresdb_route_test2", timestamp, 3)
-	require.NoError(t, err, "build metric2 rows failed")
+	require.NoError(t, err, "build table2 points failed")
 
 	points := append(table1Points, table2Points...)
 
@@ -49,5 +49,5 @@ func TestClusterMultiMetricWriteAndQuery(t *testing.T) {
 
 	testBaseQuery(t, client, "ceresdb_route_test1", timestamp, 2)
 	testBaseQuery(t, client, "ceresdb_route_test2", timestamp, 3)
-	t.Log("multi metric write is paas")
+	t.Log("multi table write is paas")
 }

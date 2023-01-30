@@ -49,7 +49,7 @@ func buildPoints(table string, timestamp int64, count int) ([]types.Point, error
 }
 
 func TestBaseWriteAndQuery(t *testing.T) {
-	//t.Skip("ignore local test")
+	t.Skip("ignore local test")
 
 	client, err := ceresdb.NewClient(endpoint)
 	require.NoError(t, err, "init ceresdb client failed")
