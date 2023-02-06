@@ -20,6 +20,20 @@ func init() {
 	}
 }
 
+func existsTable(client ceresdb.Client) error {
+	req := types.SqlQueryRequest{
+		Tables: []string{"demo"},
+		Sql:    "EXISTS TABLE demo",
+	}
+	resp, err := client.SqlQuery(context.Background(), req)
+	if err != nil {
+		fmt.Printf("exists table fail, err:%v\n", err)
+		return err
+	}
+	fmt.Printf("exists table success, resp: %v\n", resp)
+	return nil
+}
+
 func createTable(client ceresdb.Client) error {
 	createTableSQL := `CREATE TABLE IF NOT EXISTS demo (
 	name string TAG,
@@ -113,6 +127,12 @@ func main() {
 	)
 	if err != nil {
 		fmt.Printf("new ceresdb client fail, err:%v\n", err)
+		return
+	}
+
+	fmt.Println("------------------------------------------------------------------")
+	fmt.Println("### exists table:")
+	if err := existsTable(client); err != nil {
 		return
 	}
 
