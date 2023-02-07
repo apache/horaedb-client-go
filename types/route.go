@@ -2,6 +2,13 @@
 
 package types
 
+type RouteMode string
+
+const (
+	Direct RouteMode = "direct"
+	Proxy  RouteMode = "proxy"
+)
+
 type Route struct {
 	Table    string
 	Endpoint string

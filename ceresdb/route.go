@@ -9,30 +9,44 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-type routeClient struct {
+type RouteClient interface {
+	RouteFor([]string) (map[string]types.Route, error)
+	ClearRouteFor([]string)
+}
+
+func newRouteClient(endpoint string, routeMode types.RouteMode, rpcClient *rpcClient, opts options) (RouteClient, error) {
+	switch routeMode {
+	case types.Direct:
+		routeClient := &directRouteClient{
+			opts:      opts,
+			endpoint:  endpoint,
+			rpcClient: rpcClient,
+		}
+		routeCache, err := lru.NewWithEvict(opts.RouteMaxCacheSize, routeClient.OnEvict)
+		if err != nil {
+			return nil, err
+		}
+		routeClient.routeCache = routeCache
+		return routeClient, nil
+	case types.Proxy:
+		routeClient := &proxyRouteClient{
+			endpoint:  endpoint,
+			rpcClient: rpcClient,
+		}
+		return routeClient, nil
+	default:
+		return nil, fmt.Errorf("invalid arguments routeMode with %v", routeMode)
+	}
+}
+
+type directRouteClient struct {
 	opts       options
 	endpoint   string
 	rpcClient  *rpcClient
 	routeCache *lru.Cache // table -> *Route
 }
 
-func newRouteClient(endpoint string, rpcClient *rpcClient, opts options) (*routeClient, error) {
-	routeClient := &routeClient{
-		opts:      opts,
-		endpoint:  endpoint,
-		rpcClient: rpcClient,
-	}
-
-	routeCache, err := lru.NewWithEvict(opts.RouteMaxCacheSize, routeClient.OnEvict)
-	if err != nil {
-		return nil, err
-	}
-	routeClient.routeCache = routeCache
-
-	return routeClient, nil
-}
-
-func (c *routeClient) RouteFor(tables []string) (map[string]types.Route, error) {
+func (c *directRouteClient) RouteFor(tables []string) (map[string]types.Route, error) {
 	if len(tables) == 0 {
 		return nil, types.ErrNullRouteTables
 	}
@@ -52,7 +66,7 @@ func (c *routeClient) RouteFor(tables []string) (map[string]types.Route, error) 
 		return local, nil
 	}
 
-	if err := c.RouteFreshFor(misses); err != nil {
+	if err := c.routeFreshFor(misses); err != nil {
 		return nil, err
 	}
 
@@ -66,7 +80,7 @@ func (c *routeClient) RouteFor(tables []string) (map[string]types.Route, error) 
 	return local, nil
 }
 
-func (c *routeClient) RouteFreshFor(tables []string) error {
+func (c *directRouteClient) routeFreshFor(tables []string) error {
 	routes, err := c.rpcClient.Route(c.endpoint, tables)
 	if err != nil {
 		return err
@@ -78,7 +92,7 @@ func (c *routeClient) RouteFreshFor(tables []string) error {
 	return nil
 }
 
-func (c *routeClient) ClearRouteFor(tables []string) {
+func (c *directRouteClient) ClearRouteFor(tables []string) {
 	if c.opts.LoggerDebug {
 		_, _ = c.opts.Logger.Write([]byte(fmt.Sprintf("Clear tables route for refresh code, tables:%v\n", tables)))
 	}
@@ -87,8 +101,32 @@ func (c *routeClient) ClearRouteFor(tables []string) {
 	}
 }
 
-func (c *routeClient) OnEvict(table, _ interface{}) {
+func (c *directRouteClient) OnEvict(table, _ interface{}) {
 	if c.opts.LoggerDebug {
 		_, _ = c.opts.Logger.Write([]byte(fmt.Sprintf("Clear table route for evict, table:%s\n", table)))
 	}
+}
+
+type proxyRouteClient struct {
+	endpoint  string
+	rpcClient *rpcClient
+}
+
+func (c *proxyRouteClient) RouteFor(tables []string) (map[string]types.Route, error) {
+	if len(tables) == 0 {
+		return nil, types.ErrNullRouteTables
+	}
+
+	routes := make(map[string]types.Route, len(tables))
+	for _, table := range tables {
+		routes[table] = types.Route{
+			Table:    table,
+			Endpoint: c.endpoint,
+		}
+	}
+	return routes, nil
+}
+
+func (c *proxyRouteClient) ClearRouteFor(tables []string) {
+	// do noting
 }

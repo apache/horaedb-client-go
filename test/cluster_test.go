@@ -24,7 +24,7 @@ func init() {
 func TestClusterMultiWriteAndQuery(t *testing.T) {
 	t.Skip("ignore local test")
 
-	client, err := ceresdb.NewClient(clusterEndpoint,
+	client, err := ceresdb.NewClient(clusterEndpoint, types.Direct,
 		ceresdb.EnableLoggerDebug(true),
 	)
 	require.NoError(t, err, "init ceresdb client failed")

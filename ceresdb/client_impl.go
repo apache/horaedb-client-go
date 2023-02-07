@@ -12,12 +12,12 @@ import (
 
 type clientImpl struct {
 	rpcClient   *rpcClient
-	routeClient *routeClient
+	routeClient RouteClient
 }
 
-func newClient(endpoint string, opts options) (Client, error) {
+func newClient(endpoint string, routeMode types.RouteMode, opts options) (Client, error) {
 	rpcClient := newRPCClient(opts)
-	routeClient, err := newRouteClient(endpoint, rpcClient, opts)
+	routeClient, err := newRouteClient(endpoint, routeMode, rpcClient, opts)
 	if err != nil {
 		return nil, err
 	}

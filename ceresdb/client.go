@@ -13,10 +13,10 @@ type Client interface {
 	SqlQuery(context.Context, types.SqlQueryRequest) (types.SqlQueryResponse, error)
 }
 
-func NewClient(endpoint string, opts ...Option) (Client, error) {
+func NewClient(endpoint string, routeMode types.RouteMode, opts ...Option) (Client, error) {
 	defaultOpts := defaultOptions()
 	for _, opt := range opts {
 		opt.apply(defaultOpts)
 	}
-	return newClient(endpoint, *defaultOpts)
+	return newClient(endpoint, routeMode, *defaultOpts)
 }
