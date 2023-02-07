@@ -60,7 +60,7 @@ func BuildPbWriteRequest(points []types.Point) (*storagepb.WriteRequest, error) 
 		}
 
 		seriesKey := ""
-		for tagK, _ := range point.Tags {
+		for tagK := range point.Tags {
 			tuple.orderedTags.insert(tagK)
 		}
 		for _, orderedTag := range tuple.orderedTags.toOrdered() {

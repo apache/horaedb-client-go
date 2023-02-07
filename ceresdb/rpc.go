@@ -27,41 +27,41 @@ func newRPCClient(opts options) *rpcClient {
 	}
 }
 
-func (c *rpcClient) SqlQuery(ctx context.Context, endpoint string, req types.SqlQueryRequest) (types.SqlQueryResponse, error) {
+func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req types.SQLQueryRequest) (types.SQLQueryResponse, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
-		return types.SqlQueryResponse{}, err
+		return types.SQLQueryResponse{}, err
 	}
 	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
 	queryRequest := &storagepb.SqlQueryRequest{
 		Tables: req.Tables,
-		Sql:    req.Sql,
+		Sql:    req.SQL,
 	}
 	queryResponse, err := grpcClient.SqlQuery(ctx, queryRequest)
 	if err != nil {
-		return types.SqlQueryResponse{}, err
+		return types.SQLQueryResponse{}, err
 	}
 	if queryResponse.Header.Code != types.CodeSuccess {
-		return types.SqlQueryResponse{}, &types.CeresdbError{
+		return types.SQLQueryResponse{}, &types.CeresdbError{
 			Code: queryResponse.Header.Code,
 			Err:  queryResponse.Header.Error,
 		}
 	}
 
 	if affectedPayload, ok := queryResponse.Output.(*storagepb.SqlQueryResponse_AffectedRows); ok {
-		return types.SqlQueryResponse{
-			Sql:          req.Sql,
+		return types.SQLQueryResponse{
+			SQL:          req.SQL,
 			AffectedRows: affectedPayload.AffectedRows,
 		}, nil
 	}
 
 	rows, err := utils.ParseQueryResponse(queryResponse)
 	if err != nil {
-		return types.SqlQueryResponse{}, err
+		return types.SQLQueryResponse{}, err
 	}
-	return types.SqlQueryResponse{
-		Sql:          req.Sql,
+	return types.SQLQueryResponse{
+		SQL:          req.SQL,
 		AffectedRows: queryResponse.GetAffectedRows(),
 		Rows:         rows,
 	}, nil

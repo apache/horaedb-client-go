@@ -78,11 +78,11 @@ func testBaseWrite(t *testing.T, client ceresdb.Client, table string, timestamp 
 
 // nolint
 func testBaseQuery(t *testing.T, client ceresdb.Client, table string, timestamp int64, count int) {
-	req := types.SqlQueryRequest{
+	req := types.SQLQueryRequest{
 		Tables: []string{table},
-		Sql:    fmt.Sprintf("select * from %s where timestamp = %d", table, timestamp),
+		SQL:    fmt.Sprintf("select * from %s where timestamp = %d", table, timestamp),
 	}
-	resp, err := client.SqlQuery(context.Background(), req)
+	resp, err := client.SQLQuery(context.Background(), req)
 	require.NoError(t, err, "query rows failed")
 
 	require.Equal(t, len(resp.Rows), count, "query rowCount value is not expected")

@@ -4,7 +4,6 @@ package utils
 
 import (
 	"bytes"
-	"github.com/klauspost/compress/zstd"
 	"io"
 
 	"github.com/CeresDB/ceresdb-client-go/types"
@@ -12,6 +11,7 @@ import (
 	"github.com/apache/arrow/go/arrow"
 	"github.com/apache/arrow/go/arrow/array"
 	"github.com/apache/arrow/go/arrow/ipc"
+	"github.com/klauspost/compress/zstd"
 )
 
 func ParseQueryResponse(response *storagepb.SqlQueryResponse) ([]types.Row, error) {
@@ -60,7 +60,7 @@ func ParseQueryResponse(response *storagepb.SqlQueryResponse) ([]types.Row, erro
 
 func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.Row {
 	rows := make([]types.Row, record.NumRows())
-	for rowIdx, _ := range rows {
+	for rowIdx := range rows {
 		rows[rowIdx] = types.Row{
 			Values: make(map[string]types.Value, record.NumCols()),
 		}

@@ -127,6 +127,6 @@ func (c *proxyRouteClient) RouteFor(tables []string) (map[string]types.Route, er
 	return routes, nil
 }
 
-func (c *proxyRouteClient) ClearRouteFor(tables []string) {
+func (c *proxyRouteClient) ClearRouteFor([]string) {
 	// do noting
 }

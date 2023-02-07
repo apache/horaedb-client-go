@@ -10,7 +10,7 @@ import (
 
 type Client interface {
 	Write(context.Context, types.WriteRequest) (types.WriteResponse, error)
-	SqlQuery(context.Context, types.SqlQueryRequest) (types.SqlQueryResponse, error)
+	SQLQuery(context.Context, types.SQLQueryRequest) (types.SQLQueryResponse, error)
 }
 
 func NewClient(endpoint string, routeMode types.RouteMode, opts ...Option) (Client, error) {

@@ -37,10 +37,10 @@ func TestClusterMultiWriteAndQuery(t *testing.T) {
 	table2Points, err := buildPoints("ceresdb_route_test2", timestamp, 3)
 	require.NoError(t, err, "build table2 points failed")
 
-	points := append(table1Points, table2Points...)
+	table1Points = append(table1Points, table2Points...)
 
 	req := types.WriteRequest{
-		Points: points,
+		Points: table1Points,
 	}
 	resp, err := client.Write(context.Background(), req)
 	require.NoError(t, err, "write rows failed")

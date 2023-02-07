@@ -3,11 +3,11 @@
 package test
 
 import (
-	"github.com/CeresDB/ceresdb-client-go/types"
 	"testing"
 	"time"
 
 	"github.com/CeresDB/ceresdb-client-go/ceresdb"
+	"github.com/CeresDB/ceresdb-client-go/types"
 	"github.com/CeresDB/ceresdb-client-go/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -41,7 +41,7 @@ func TestRouteGc(t *testing.T) {
 }
 
 func TestRouteProxy(t *testing.T) {
-	//t.Skip("ignore local test")
+	t.Skip("ignore local test")
 
 	client, err := ceresdb.NewClient(clusterEndpoint, types.Proxy,
 		ceresdb.EnableLoggerDebug(true),

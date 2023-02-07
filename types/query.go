@@ -2,13 +2,13 @@
 
 package types
 
-type SqlQueryRequest struct {
+type SQLQueryRequest struct {
 	Tables []string
-	Sql    string
+	SQL    string
 }
 
-type SqlQueryResponse struct {
-	Sql          string
+type SQLQueryResponse struct {
+	SQL          string
 	AffectedRows uint32
 	Rows         []Row
 }

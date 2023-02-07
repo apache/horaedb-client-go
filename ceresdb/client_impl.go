@@ -27,23 +27,23 @@ func newClient(endpoint string, routeMode types.RouteMode, opts options) (Client
 	}, nil
 }
 
-func (c *clientImpl) SqlQuery(ctx context.Context, req types.SqlQueryRequest) (types.SqlQueryResponse, error) {
+func (c *clientImpl) SQLQuery(ctx context.Context, req types.SQLQueryRequest) (types.SQLQueryResponse, error) {
 	if len(req.Tables) == 0 {
-		return types.SqlQueryResponse{}, types.ErrNullRequestTables
+		return types.SQLQueryResponse{}, types.ErrNullRequestTables
 	}
 
 	routes, err := c.routeClient.RouteFor(req.Tables)
 	if err != nil {
-		return types.SqlQueryResponse{}, fmt.Errorf("Route tables failed, tables:%v, err:%v", req.Tables, err)
+		return types.SQLQueryResponse{}, fmt.Errorf("Route tables failed, tables:%v, err:%v", req.Tables, err)
 	}
 	for _, route := range routes {
-		queryResponse, err := c.rpcClient.SqlQuery(ctx, route.Endpoint, req)
+		queryResponse, err := c.rpcClient.SQLQuery(ctx, route.Endpoint, req)
 		if ceresdbErr, ok := err.(*types.CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
 			c.routeClient.ClearRouteFor(req.Tables)
 		}
 		return queryResponse, err
 	}
-	return types.SqlQueryResponse{}, types.ErrEmptyRoute
+	return types.SQLQueryResponse{}, types.ErrEmptyRoute
 }
 
 func (c *clientImpl) Write(ctx context.Context, request types.WriteRequest) (types.WriteResponse, error) {

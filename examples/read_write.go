@@ -21,11 +21,11 @@ func init() {
 }
 
 func existsTable(client ceresdb.Client) error {
-	req := types.SqlQueryRequest{
+	req := types.SQLQueryRequest{
 		Tables: []string{"demo"},
-		Sql:    "EXISTS TABLE demo",
+		SQL:    "EXISTS TABLE demo",
 	}
-	resp, err := client.SqlQuery(context.Background(), req)
+	resp, err := client.SQLQuery(context.Background(), req)
 	if err != nil {
 		fmt.Printf("exists table fail, err:%v\n", err)
 		return err
@@ -41,11 +41,11 @@ func createTable(client ceresdb.Client) error {
 	t timestamp NOT NULL,
 	TIMESTAMP KEY(t)) ENGINE=Analytic with (enable_ttl=false)`
 
-	req := types.SqlQueryRequest{
+	req := types.SQLQueryRequest{
 		Tables: []string{"demo"},
-		Sql:    createTableSQL,
+		SQL:    createTableSQL,
 	}
-	resp, err := client.SqlQuery(context.Background(), req)
+	resp, err := client.SQLQuery(context.Background(), req)
 	if err != nil {
 		fmt.Printf("create table fail, err:%v\n", err)
 		return err
@@ -56,11 +56,11 @@ func createTable(client ceresdb.Client) error {
 
 func dropTable(client ceresdb.Client) error {
 	dropTableSQL := `DROP TABLE demo`
-	req := types.SqlQueryRequest{
+	req := types.SQLQueryRequest{
 		Tables: []string{"demo"},
-		Sql:    dropTableSQL,
+		SQL:    dropTableSQL,
 	}
-	resp, err := client.SqlQuery(context.Background(), req)
+	resp, err := client.SQLQuery(context.Background(), req)
 	if err != nil {
 		fmt.Printf("drop table fail, err:%v\n", err)
 		return err
@@ -83,7 +83,6 @@ func writeTable(client ceresdb.Client) error {
 		AddField("value", types.NewDoubleValue(0.2414)).
 		Build().
 		Build()
-
 	if err != nil {
 		fmt.Printf("write table build row fail, err:%v\n", err)
 		return err
@@ -106,11 +105,11 @@ func writeTable(client ceresdb.Client) error {
 
 func queryTable(client ceresdb.Client) error {
 	querySQL := `SELECT * FROM demo`
-	req := types.SqlQueryRequest{
+	req := types.SQLQueryRequest{
 		Tables: []string{"demo"},
-		Sql:    querySQL,
+		SQL:    querySQL,
 	}
-	resp, err := client.SqlQuery(context.Background(), req)
+	resp, err := client.SQLQuery(context.Background(), req)
 	if err != nil {
 		fmt.Printf("query table fail, err:%v\n", err)
 		return err
