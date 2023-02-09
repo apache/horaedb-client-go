@@ -23,10 +23,10 @@ func init() {
 }
 
 // nolint
-func buildPoints(table string, timestamp int64, count int) ([]types.Point, error) {
-	builder := ceresdb.NewPointsBuilder(table)
+func buildTablePoints(table string, timestamp int64, count int) ([]types.Point, error) {
+	tablePointsBuilder := ceresdb.NewTablePointsBuilder(table)
 	for idx := 0; idx < count; idx++ {
-		builder.Add().
+		tablePointsBuilder.AddPoint().
 			SetTimestamp(timestamp).
 			AddTag("tagA", types.NewStringValue(fmt.Sprintf("tagA:%s:%d", table, idx))).
 			AddTag("tagB", types.NewStringValue(fmt.Sprintf("tagB:%s:%d", table, idx))).
@@ -43,9 +43,9 @@ func buildPoints(table string, timestamp int64, count int) ([]types.Point, error
 			AddField("vuint16", types.NewUint16Value(16)).
 			AddField("vuint8", types.NewUint8Value(8)).
 			AddField("vbinary", types.NewVarbinaryValue([]byte{1, 2, 3})).
-			Build()
+			BuildAndContinue()
 	}
-	return builder.Build()
+	return tablePointsBuilder.Build()
 }
 
 func TestBaseWriteAndQuery(t *testing.T) {
@@ -61,7 +61,7 @@ func TestBaseWriteAndQuery(t *testing.T) {
 
 // nolint
 func testBaseWrite(t *testing.T, client ceresdb.Client, table string, timestamp int64, count int) {
-	points, err := buildPoints(table, timestamp, count)
+	points, err := buildTablePoints(table, timestamp, count)
 	require.NoError(t, err, "build points failed")
 	require.Equal(t, len(points), count, "build points failed, not expected")
 

@@ -10,6 +10,7 @@ import (
 var (
 	ErrPointEmptyTable     = errors.New("point table should not be empty")
 	ErrPointEmptyTimestamp = errors.New("point timestamp should not be empty")
+	ErrPointEmptyTags      = errors.New("point tags should not be empty")
 	ErrPointEmptyFields    = errors.New("point fields should not be empty")
 	ErrNullRows            = errors.New("null rows")
 	ErrNullRouteTables     = errors.New("null route tables")

@@ -13,19 +13,29 @@ const (
 	ReservedColumnTimestamp = "timestamp"
 )
 
-type PointsBuilder struct {
+type TablePointsBuilder struct {
 	table  string
 	points []types.Point
 }
 
-func NewPointsBuilder(table string) *PointsBuilder {
-	return &PointsBuilder{
+func NewTablePointsBuilder(table string) *TablePointsBuilder {
+	return &TablePointsBuilder{
 		table:  table,
 		points: make([]types.Point, 0),
 	}
 }
 
-func (b *PointsBuilder) Add() *PointBuilder {
+func NewPointBuilder(table string) *PointBuilder {
+	return &PointBuilder{
+		point: types.Point{
+			Table:  table,
+			Tags:   make(map[string]types.Value),
+			Fields: make(map[string]types.Value),
+		},
+	}
+}
+
+func (b *TablePointsBuilder) AddPoint() *PointBuilder {
 	return &PointBuilder{
 		parent: b,
 		point: types.Point{
@@ -36,24 +46,14 @@ func (b *PointsBuilder) Add() *PointBuilder {
 	}
 }
 
-func (b *PointsBuilder) Build() ([]types.Point, error) {
+func (b *TablePointsBuilder) Build() ([]types.Point, error) {
 	if b.table == "" {
 		return nil, types.ErrPointEmptyTable
 	}
 
 	for _, point := range b.points {
-		if point.Timestamp <= 0 {
-			return nil, types.ErrPointEmptyTimestamp
-		}
-
-		if len(point.Fields) == 0 {
-			return nil, types.ErrPointEmptyFields
-		}
-
-		for tagK := range point.Tags {
-			if isReservedColumn(tagK) {
-				return nil, fmt.Errorf("tag name is reserved column name in ceresdb, name:%s", tagK)
-			}
+		if err := checkPoint(point); err != nil {
+			return nil, err
 		}
 	}
 
@@ -61,7 +61,7 @@ func (b *PointsBuilder) Build() ([]types.Point, error) {
 }
 
 type PointBuilder struct {
-	parent *PointsBuilder
+	parent *TablePointsBuilder
 	point  types.Point
 }
 
@@ -80,9 +80,43 @@ func (b *PointBuilder) AddField(k string, v types.Value) *PointBuilder {
 	return b
 }
 
-func (b *PointBuilder) Build() *PointsBuilder {
+func (b *PointBuilder) Build() (types.Point, error) {
+	err := checkPoint(b.point)
+	if err != nil {
+		return types.Point{}, err
+	}
+	return b.point, nil
+}
+
+func (b *PointBuilder) BuildAndContinue() *TablePointsBuilder {
 	b.parent.points = append(b.parent.points, b.point)
 	return b.parent
+}
+
+func checkPoint(point types.Point) error {
+	if point.Table == "" {
+		return types.ErrPointEmptyTable
+	}
+
+	if point.Timestamp <= 0 {
+		return types.ErrPointEmptyTimestamp
+	}
+
+	if len(point.Tags) == 0 {
+		return types.ErrPointEmptyTags
+	}
+
+	if len(point.Fields) == 0 {
+		return types.ErrPointEmptyFields
+	}
+
+	for tagK := range point.Tags {
+		if isReservedColumn(tagK) {
+			return fmt.Errorf("tag name is reserved column name in ceresdb, name:%s", tagK)
+		}
+	}
+
+	return nil
 }
 
 func isReservedColumn(name string) bool {
