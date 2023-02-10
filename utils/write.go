@@ -10,33 +10,33 @@ import (
 	"github.com/CeresDB/ceresdbproto/golang/pkg/storagepb"
 )
 
-func GetMetricsFromRows(rows []*types.Row) []string {
+func GetTablesFromPoints(points []types.Point) []string {
 	dict := make(map[string]byte)
-	metrics := make([]string, 0, len(rows))
-	for _, row := range rows {
-		if _, ok := dict[row.Metric]; !ok {
-			dict[row.Metric] = 0
-			metrics = append(metrics, row.Metric)
+	tables := make([]string, 0, len(points))
+	for _, point := range points {
+		if _, ok := dict[point.Table]; !ok {
+			dict[point.Table] = 0
+			tables = append(tables, point.Table)
 		}
 	}
-	return metrics
+	return tables
 }
 
-func SplitRowsByRoute(rows []*types.Row, routes map[string]types.Route) (map[string][]*types.Row, error) {
-	rowsByRoute := make(map[string][]*types.Row, len(routes))
-	for _, row := range rows {
-		route, ok := routes[row.Metric]
+func SplitPointsByRoute(points []types.Point, routes map[string]types.Route) (map[string][]types.Point, error) {
+	pointsByRoute := make(map[string][]types.Point, len(routes))
+	for _, point := range points {
+		route, ok := routes[point.Table]
 		if !ok {
-			return nil, fmt.Errorf("route for metric %s not found", row.Metric)
+			return nil, fmt.Errorf("route for table %s not found", point.Table)
 		}
-		if rows, ok := rowsByRoute[route.Endpoint]; ok {
-			rowsByRoute[route.Endpoint] = append(rows, row)
+		if rows, ok := pointsByRoute[route.Endpoint]; ok {
+			pointsByRoute[route.Endpoint] = append(rows, point)
 		} else {
-			rowsByRoute[route.Endpoint] = []*types.Row{row}
+			pointsByRoute[route.Endpoint] = []types.Point{point}
 		}
 	}
 
-	return rowsByRoute, nil
+	return pointsByRoute, nil
 }
 
 func CombineWriteResponse(r1 types.WriteResponse, r2 types.WriteResponse) types.WriteResponse {
@@ -45,46 +45,60 @@ func CombineWriteResponse(r1 types.WriteResponse, r2 types.WriteResponse) types.
 	return r1
 }
 
-func BuildPbWriteRequest(rows []*types.Row) (*storagepb.WriteRequest, error) {
-	tuples := make(map[string]*writeTuple)
+func BuildPbWriteRequest(points []types.Point) (*storagepb.WriteRequest, error) {
+	tuples := make(map[string]*writeTuple) // table -> tuple
 
-	for _, row := range rows {
-		tuple, ok := tuples[row.Metric]
+	for _, point := range points {
+		tuple, ok := tuples[point.Table]
 		if !ok {
 			tuple = &writeTuple{
-				writeMetric: storagepb.WriteMetric{
-					Metric:  row.Metric,
-					Entries: []*storagepb.WriteEntry{},
-				},
-				orderedTags:   orderedNames{nameIndexes: map[string]int{}},
-				orderedFields: orderedNames{nameIndexes: map[string]int{}},
+				writeSeriesEntries: map[string]*storagepb.WriteSeriesEntry{},
+				orderedTags:        orderedNames{nameIndexes: map[string]int{}},
+				orderedFields:      orderedNames{nameIndexes: map[string]int{}},
 			}
-			tuples[row.Metric] = tuple
+			tuples[point.Table] = tuple
 		}
 
-		writeEntry := &storagepb.WriteEntry{
-			Tags:        make([]*storagepb.Tag, 0, len(row.Tags)),
-			FieldGroups: make([]*storagepb.FieldGroup, 0, 1),
+		seriesKey := ""
+		for tagK := range point.Tags {
+			tuple.orderedTags.insert(tagK)
+		}
+		for _, orderedTag := range tuple.orderedTags.toOrdered() {
+			seriesKey += point.Tags[orderedTag].StringValue()
 		}
 
-		for tagK, tagV := range row.Tags {
-			idx := tuple.orderedTags.insert(tagK)
-			writeEntry.Tags = append(writeEntry.Tags, &storagepb.Tag{
-				NameIndex: uint32(idx),
-				Value: &storagepb.Value{
-					Value: &storagepb.Value_StringValue{
-						StringValue: tagV,
+		writeEntry, ok := tuple.writeSeriesEntries[seriesKey]
+		if !ok {
+			writeEntry = &storagepb.WriteSeriesEntry{
+				Tags:        make([]*storagepb.Tag, 0, len(point.Tags)),
+				FieldGroups: make([]*storagepb.FieldGroup, 0, 1),
+			}
+			for idx, orderedTag := range tuple.orderedTags.toOrdered() {
+				tagV := point.Tags[orderedTag]
+				if tagV.IsNull() {
+					continue
+				}
+				writeEntry.Tags = append(writeEntry.Tags, &storagepb.Tag{
+					NameIndex: uint32(idx),
+					Value: &storagepb.Value{
+						Value: &storagepb.Value_StringValue{
+							StringValue: tagV.StringValue(),
+						},
 					},
-				},
-			})
+				})
+			}
+			tuple.writeSeriesEntries[seriesKey] = writeEntry
 		}
 
 		fieldGroup := &storagepb.FieldGroup{
-			Timestamp: row.Timestamp,
-			Fields:    make([]*storagepb.Field, 0, len(row.Fields)),
+			Timestamp: point.Timestamp,
+			Fields:    make([]*storagepb.Field, 0, len(point.Fields)),
 		}
-		for fieldK, fieldV := range row.Fields {
+		for fieldK, fieldV := range point.Fields {
 			idx := tuple.orderedFields.insert(fieldK)
+			if fieldV.IsNull() {
+				continue
+			}
 			pbV, err := buildPbValue(fieldV)
 			if err != nil {
 				return nil, err
@@ -94,94 +108,105 @@ func BuildPbWriteRequest(rows []*types.Row) (*storagepb.WriteRequest, error) {
 				Value:     pbV,
 			})
 		}
-		writeEntry.FieldGroups = []*storagepb.FieldGroup{fieldGroup}
-
-		tuple.writeMetric.Entries = append(tuple.writeMetric.Entries, writeEntry)
+		writeEntry.FieldGroups = append(writeEntry.FieldGroups, fieldGroup)
 	}
 
 	writeRequest := &storagepb.WriteRequest{
-		Metrics: make([]*storagepb.WriteMetric, 0, len(tuples)),
+		TableRequests: make([]*storagepb.WriteTableRequest, 0, len(tuples)),
 	}
-	for _, tuple := range tuples {
-		tuple.writeMetric.TagNames = tuple.orderedTags.toOrdered()
-		tuple.writeMetric.FieldNames = tuple.orderedFields.toOrdered()
-		writeRequest.Metrics = append(writeRequest.Metrics, &tuple.writeMetric)
+	for table, tuple := range tuples {
+		writeTableReq := storagepb.WriteTableRequest{
+			Table:   table,
+			Entries: []*storagepb.WriteSeriesEntry{},
+		}
+		writeTableReq.TagNames = tuple.orderedTags.toOrdered()
+		writeTableReq.FieldNames = tuple.orderedFields.toOrdered()
+		for _, writeSeriesEntry := range tuple.writeSeriesEntries {
+			writeTableReq.Entries = append(writeTableReq.Entries, writeSeriesEntry)
+		}
+		writeRequest.TableRequests = append(writeRequest.TableRequests, &writeTableReq)
 	}
 	return writeRequest, nil
 }
 
-func buildPbValue(value interface{}) (*storagepb.Value, error) {
-	switch v := value.(type) {
-	case bool:
+func buildPbValue(v types.Value) (*storagepb.Value, error) {
+	switch v.DataType() {
+	case types.BOOL:
 		return &storagepb.Value{
 			Value: &storagepb.Value_BoolValue{
-				BoolValue: v,
+				BoolValue: v.BoolValue(),
 			},
 		}, nil
-	case string:
+	case types.STRING:
 		return &storagepb.Value{
 			Value: &storagepb.Value_StringValue{
-				StringValue: v,
+				StringValue: v.StringValue(),
 			},
 		}, nil
-	case float64:
+	case types.DOUBLE:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Float64Value{
-				Float64Value: v,
+				Float64Value: v.DoubleValue(),
 			},
 		}, nil
-	case float32:
+	case types.FLOAT:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Float32Value{
-				Float32Value: v,
+				Float32Value: v.FloatValue(),
 			},
 		}, nil
-	case int64:
+	case types.INT64:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Int64Value{
-				Int64Value: v,
+				Int64Value: v.Int64Value(),
 			},
 		}, nil
-	case int32:
+	case types.INT32:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Int32Value{
-				Int32Value: v,
+				Int32Value: v.Int32Value(),
 			},
 		}, nil
-	case int16:
+	case types.INT16:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Int16Value{
-				Int16Value: int32(v),
+				Int16Value: int32(v.Int16Value()),
 			},
 		}, nil
-	case int8:
+	case types.INT8:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Int8Value{
-				Int8Value: int32(v),
+				Int8Value: int32(v.Int8Value()),
 			},
 		}, nil
-	case uint64:
+	case types.UINT64:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Uint64Value{
-				Uint64Value: v,
+				Uint64Value: v.Uint64Value(),
 			},
 		}, nil
-	case uint32:
+	case types.UINT32:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Uint32Value{
-				Uint32Value: v,
+				Uint32Value: v.Uint32Value(),
 			},
 		}, nil
-	case uint16:
+	case types.UINT16:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Uint16Value{
-				Uint16Value: uint32(v),
+				Uint16Value: uint32(v.Uint16Value()),
 			},
 		}, nil
-	case uint8:
+	case types.UINT8:
 		return &storagepb.Value{
 			Value: &storagepb.Value_Uint8Value{
-				Uint8Value: uint32(v),
+				Uint8Value: uint32(v.Uint8Value()),
+			},
+		}, nil
+	case types.VARBINARY:
+		return &storagepb.Value{
+			Value: &storagepb.Value_VarbinaryValue{
+				VarbinaryValue: v.VarbinaryValue(),
 			},
 		}, nil
 	default:
@@ -190,9 +215,9 @@ func buildPbValue(value interface{}) (*storagepb.Value, error) {
 }
 
 type writeTuple struct {
-	writeMetric   storagepb.WriteMetric
-	orderedTags   orderedNames
-	orderedFields orderedNames
+	writeSeriesEntries map[string]*storagepb.WriteSeriesEntry // seriesKey -> entry
+	orderedTags        orderedNames
+	orderedFields      orderedNames
 }
 
 // for sort keys

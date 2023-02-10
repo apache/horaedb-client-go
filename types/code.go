@@ -8,15 +8,16 @@ import (
 )
 
 var (
-	ErrBuiltBuilder        = errors.New("builder has been built, use new one or reset")
-	ErrRowEmptyMetric      = errors.New("builder has been built, use new one or reset")
-	ErrRowEmptyTimestamp   = errors.New("timestamp shoud not be empty")
-	ErrRowEmptyFields      = errors.New("fields should not be empty")
-	ErrRowInvalidFieldType = errors.New("filed invalid type")
+	ErrNoDatabaseSelected  = errors.New("no database selected, you can use database in client initial options or WriteRequest/SqlQueryRequest")
+	ErrPointEmptyTable     = errors.New("point's table is not set")
+	ErrPointEmptyTimestamp = errors.New("point's timestamp is not set")
+	ErrPointEmptyTags      = errors.New("point's tags should not be empty")
+	ErrPointEmptyFields    = errors.New("point's fields should not be empty")
 	ErrNullRows            = errors.New("null rows")
-	ErrNullRouteMetrics    = errors.New("null route metrics")
-	ErrNullRequestMetrics  = errors.New("null request metrics")
+	ErrNullRouteTables     = errors.New("null route tables")
+	ErrNullRequestTables   = errors.New("null request tables")
 	ErrEmptyRoute          = errors.New("empty route")
+	ErrOnlyArrowSupport    = errors.New("only arrow support now")
 )
 
 const (

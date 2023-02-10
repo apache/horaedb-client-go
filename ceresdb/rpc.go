@@ -27,49 +27,62 @@ func newRPCClient(opts options) *rpcClient {
 	}
 }
 
-func (c *rpcClient) Query(ctx context.Context, endpoint string, req types.QueryRequest) (types.QueryResponse, error) {
+func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req types.SQLQueryRequest) (types.SQLQueryResponse, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
-		return types.QueryResponse{}, err
+		return types.SQLQueryResponse{}, err
 	}
 	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
-	queryRequest := &storagepb.QueryRequest{
-		Metrics: req.Metrics,
-		Ql:      req.Ql,
+	queryRequest := &storagepb.SqlQueryRequest{
+		Context: &storagepb.RequestContext{
+			Database: req.ReqCtx.Database,
+		},
+		Tables: req.Tables,
+		Sql:    req.SQL,
 	}
-	queryResponse, err := grpcClient.Query(ctx, queryRequest)
+	queryResponse, err := grpcClient.SqlQuery(ctx, queryRequest)
 	if err != nil {
-		return types.QueryResponse{}, err
+		return types.SQLQueryResponse{}, err
 	}
 	if queryResponse.Header.Code != types.CodeSuccess {
-		return types.QueryResponse{}, &types.CeresdbError{
+		return types.SQLQueryResponse{}, &types.CeresdbError{
 			Code: queryResponse.Header.Code,
 			Err:  queryResponse.Header.Error,
 		}
 	}
 
+	if affectedPayload, ok := queryResponse.Output.(*storagepb.SqlQueryResponse_AffectedRows); ok {
+		return types.SQLQueryResponse{
+			SQL:          req.SQL,
+			AffectedRows: affectedPayload.AffectedRows,
+		}, nil
+	}
+
 	rows, err := utils.ParseQueryResponse(queryResponse)
 	if err != nil {
-		return types.QueryResponse{}, err
+		return types.SQLQueryResponse{}, err
 	}
-	return types.QueryResponse{
-		Ql:       req.Ql,
-		RowCount: uint32(len(rows)),
-		Rows:     rows,
+	return types.SQLQueryResponse{
+		SQL:          req.SQL,
+		AffectedRows: queryResponse.GetAffectedRows(),
+		Rows:         rows,
 	}, nil
 }
 
-func (c *rpcClient) Write(ctx context.Context, endpoint string, rows []*types.Row) (types.WriteResponse, error) {
+func (c *rpcClient) Write(ctx context.Context, endpoint string, reqCtx types.RequestContext, points []types.Point) (types.WriteResponse, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
 		return types.WriteResponse{}, err
 	}
 	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
-	writeRequest, err := utils.BuildPbWriteRequest(rows)
+	writeRequest, err := utils.BuildPbWriteRequest(points)
 	if err != nil {
 		return types.WriteResponse{}, err
+	}
+	writeRequest.Context = &storagepb.RequestContext{
+		Database: reqCtx.Database,
 	}
 	writeResponse, err := grpcClient.Write(ctx, writeRequest)
 	if err != nil {
@@ -87,7 +100,7 @@ func (c *rpcClient) Write(ctx context.Context, endpoint string, rows []*types.Ro
 	}, nil
 }
 
-func (c *rpcClient) Route(endpoint string, metrics []string) (map[string]types.Route, error) {
+func (c *rpcClient) Route(endpoint string, reqCtx types.RequestContext, tables []string) (map[string]types.Route, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
 		return nil, err
@@ -95,7 +108,10 @@ func (c *rpcClient) Route(endpoint string, metrics []string) (map[string]types.R
 	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
 	routeRequest := &storagepb.RouteRequest{
-		Metrics: metrics,
+		Context: &storagepb.RequestContext{
+			Database: reqCtx.Database,
+		},
+		Tables: tables,
 	}
 	routeResponse, err := grpcClient.Route(context.Background(), routeRequest)
 	if err != nil {
@@ -111,8 +127,8 @@ func (c *rpcClient) Route(endpoint string, metrics []string) (map[string]types.R
 	routes := make(map[string]types.Route, len(routeResponse.Routes))
 	for _, r := range routeResponse.Routes {
 		endpoint := fmt.Sprintf("%s:%d", r.Endpoint.Ip, r.Endpoint.Port)
-		routes[r.Metric] = types.Route{
-			Metric:   r.Metric,
+		routes[r.Table] = types.Route{
+			Table:    r.Table,
 			Endpoint: endpoint,
 			Ext:      r.Ext,
 		}

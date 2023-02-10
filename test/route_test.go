@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/CeresDB/ceresdb-client-go/ceresdb"
+	"github.com/CeresDB/ceresdb-client-go/types"
 	"github.com/CeresDB/ceresdb-client-go/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -14,7 +15,7 @@ import (
 func TestRouteGc(t *testing.T) {
 	t.Skip("ignore local test")
 
-	client, err := ceresdb.NewClient(endpoint,
+	client, err := ceresdb.NewClient(clusterEndpoint, types.Direct,
 		ceresdb.EnableLoggerDebug(true),
 		ceresdb.WithRouteMaxCacheSize(3),
 	)
@@ -37,4 +38,17 @@ func TestRouteGc(t *testing.T) {
 	// the expected result is that the routes of ceresdb_route_test1 and table ceresdb_route_test3 are cleaned up
 
 	time.Sleep(12 * time.Second)
+}
+
+func TestRouteProxy(t *testing.T) {
+	t.Skip("ignore local test")
+
+	client, err := ceresdb.NewClient(clusterEndpoint, types.Proxy,
+		ceresdb.EnableLoggerDebug(true),
+		ceresdb.WithRouteMaxCacheSize(3),
+	)
+	require.NoError(t, err, "init ceresdb client failed")
+
+	timestamp := utils.CurrentMS()
+	testBaseWrite(t, client, "ceresdb_route_test1", timestamp, 1)
 }

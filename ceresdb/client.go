@@ -9,15 +9,14 @@ import (
 )
 
 type Client interface {
-	Query(context.Context, types.QueryRequest) (types.QueryResponse, error)
-	// Note: Rows currently writing to the same timeline will be overwritten, this restriction will be removed shortly.
-	Write(context.Context, []*types.Row) (types.WriteResponse, error)
+	Write(context.Context, types.WriteRequest) (types.WriteResponse, error)
+	SQLQuery(context.Context, types.SQLQueryRequest) (types.SQLQueryResponse, error)
 }
 
-func NewClient(endpoint string, opts ...Option) (Client, error) {
+func NewClient(endpoint string, routeMode types.RouteMode, opts ...Option) (Client, error) {
 	defaultOpts := defaultOptions()
 	for _, opt := range opts {
 		opt.apply(defaultOpts)
 	}
-	return newClient(endpoint, *defaultOpts)
+	return newClient(endpoint, routeMode, *defaultOpts)
 }

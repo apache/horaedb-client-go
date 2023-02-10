@@ -13,109 +13,112 @@ const (
 	ReservedColumnTimestamp = "timestamp"
 )
 
-type RowBuilder struct {
-	metric string
-	row    *types.Row
-	built  bool
+type TablePointsBuilder struct {
+	table  string
+	points []types.Point
 }
 
-func NewRowBuilder(metric string) *RowBuilder {
-	return &RowBuilder{
-		metric: metric,
-		row: &types.Row{
-			Series: types.Series{
-				Metric: metric,
-				Tags:   make(map[string]string),
-			},
-			Fields: make(map[string]interface{}),
+func NewTablePointsBuilder(table string) *TablePointsBuilder {
+	return &TablePointsBuilder{
+		table:  table,
+		points: make([]types.Point, 0),
+	}
+}
+
+func NewPointBuilder(table string) *PointBuilder {
+	return &PointBuilder{
+		point: types.Point{
+			Table:  table,
+			Tags:   make(map[string]types.Value),
+			Fields: make(map[string]types.Value),
 		},
-		built: false,
 	}
 }
 
-// reset bulider
-// The row can then be built again with the same metric
-func (b *RowBuilder) Reset() *RowBuilder {
-	b.row = &types.Row{
-		Series: types.Series{
-			Metric: b.metric,
-			Tags:   make(map[string]string),
+func (b *TablePointsBuilder) AddPoint() *PointBuilder {
+	return &PointBuilder{
+		parent: b,
+		point: types.Point{
+			Table:  b.table,
+			Tags:   make(map[string]types.Value),
+			Fields: make(map[string]types.Value),
 		},
-		Fields: make(map[string]interface{}),
 	}
-	b.built = false
+}
+
+func (b *TablePointsBuilder) Build() ([]types.Point, error) {
+	if b.table == "" {
+		return nil, types.ErrPointEmptyTable
+	}
+
+	for _, point := range b.points {
+		if err := checkPoint(point); err != nil {
+			return nil, err
+		}
+	}
+
+	return b.points, nil
+}
+
+type PointBuilder struct {
+	parent *TablePointsBuilder
+	point  types.Point
+}
+
+func (b *PointBuilder) SetTimestamp(timestamp int64) *PointBuilder {
+	b.point.Timestamp = timestamp
 	return b
 }
 
-func (b *RowBuilder) SetTimestamp(timestamp int64) *RowBuilder {
-	b.row.Timestamp = timestamp
+func (b *PointBuilder) AddTag(k string, v types.Value) *PointBuilder {
+	b.point.Tags[k] = v
 	return b
 }
 
-func (b *RowBuilder) AddTag(k, v string) *RowBuilder {
-	b.row.Tags[k] = v
+func (b *PointBuilder) AddField(k string, v types.Value) *PointBuilder {
+	b.point.Fields[k] = v
 	return b
 }
 
-func (b *RowBuilder) AddField(k string, v interface{}) *RowBuilder {
-	b.row.Fields[k] = v
-	return b
+func (b *PointBuilder) Build() (types.Point, error) {
+	err := checkPoint(b.point)
+	if err != nil {
+		return types.Point{}, err
+	}
+	return b.point, nil
 }
 
-func (b *RowBuilder) Build() (*types.Row, error) {
-	if b.built {
-		return nil, types.ErrBuiltBuilder
+func (b *PointBuilder) BuildAndContinue() *TablePointsBuilder {
+	b.parent.points = append(b.parent.points, b.point)
+	return b.parent
+}
+
+func checkPoint(point types.Point) error {
+	if point.Table == "" {
+		return types.ErrPointEmptyTable
 	}
 
-	row := b.row
-
-	if row.Metric == "" {
-		return nil, types.ErrRowEmptyMetric
+	if point.Timestamp <= 0 {
+		return types.ErrPointEmptyTimestamp
 	}
 
-	if row.Timestamp <= 0 {
-		return nil, types.ErrRowEmptyTimestamp
+	if len(point.Tags) == 0 {
+		return types.ErrPointEmptyTags
 	}
 
-	if len(row.Fields) == 0 {
-		return nil, types.ErrRowEmptyFields
+	if len(point.Fields) == 0 {
+		return types.ErrPointEmptyFields
 	}
 
-	for tagK := range row.Tags {
+	for tagK := range point.Tags {
 		if isReservedColumn(tagK) {
-			return nil, fmt.Errorf("tag name is reserved column name in ceresdb, name:%s", tagK)
+			return fmt.Errorf("tag name is reserved column name in ceresdb, name:%s", tagK)
 		}
 	}
 
-	for fieldK, fieldV := range row.Fields {
-		if isReservedColumn(fieldK) {
-			return nil, fmt.Errorf("field name is reserved column name in ceresdb, name:%s", fieldK)
-		}
-
-		convertedFieldV, err := convertField(fieldV)
-		if err != nil {
-			return nil, fmt.Errorf("not valid field, key:%s, value:%v", fieldK, fieldV)
-		}
-		row.Fields[fieldK] = convertedFieldV
-	}
-
-	b.built = true
-	return row, nil
+	return nil
 }
 
 func isReservedColumn(name string) bool {
 	return name == ReservedColumnTsid || name == ReservedColumnTimestamp
-}
-
-func convertField(v interface{}) (interface{}, error) {
-	switch v := v.(type) {
-	case bool, string, float64, float32, int64, int32, int16, int8, uint64, uint32, uint16, uint8:
-		return v, nil
-	case int:
-		return int64(v), nil
-	case uint:
-		return uint64(v), nil
-	default:
-		return nil, types.ErrRowInvalidFieldType
-	}
 }

@@ -12,6 +12,7 @@ type Option interface {
 }
 
 type options struct {
+	Database          string
 	Logger            io.Writer
 	LoggerDebug       bool
 	RPCMaxRecvMsgSize int
@@ -34,11 +35,18 @@ func newFuncOption(f func(*options)) *funcOption {
 
 func defaultOptions() *options {
 	return &options{
+		Database:          "",
 		Logger:            os.Stdout,
 		LoggerDebug:       false,
 		RPCMaxRecvMsgSize: 1024 * 1024 * 1024,
 		RouteMaxCacheSize: 10 * 1000,
 	}
+}
+
+func WithDefaultDatabase(database string) Option {
+	return newFuncOption(func(o *options) {
+		o.Database = database
+	})
 }
 
 func WithLoggerWriter(writer io.Writer) Option {

@@ -20,6 +20,20 @@ func init() {
 	}
 }
 
+func existsTable(client ceresdb.Client) error {
+	req := types.SQLQueryRequest{
+		Tables: []string{"demo"},
+		SQL:    "EXISTS TABLE demo",
+	}
+	resp, err := client.SQLQuery(context.Background(), req)
+	if err != nil {
+		fmt.Printf("exists table fail, err: %v\n", err)
+		return err
+	}
+	fmt.Printf("exists table success, resp: %+v\n", resp)
+	return nil
+}
+
 func createTable(client ceresdb.Client) error {
 	createTableSQL := `CREATE TABLE IF NOT EXISTS demo (
 	name string TAG,
@@ -27,62 +41,70 @@ func createTable(client ceresdb.Client) error {
 	t timestamp NOT NULL,
 	TIMESTAMP KEY(t)) ENGINE=Analytic with (enable_ttl=false)`
 
-	req := types.QueryRequest{
-		Metrics: []string{"demo"},
-		Ql:      createTableSQL,
+	req := types.SQLQueryRequest{
+		Tables: []string{"demo"},
+		SQL:    createTableSQL,
 	}
-	_, err := client.Query(context.Background(), req)
+	resp, err := client.SQLQuery(context.Background(), req)
 	if err != nil {
-		fmt.Printf("create table fail, err:%v\n", err)
+		fmt.Printf("create table fail, err: %v\n", err)
 		return err
 	}
-	fmt.Printf("create table success\n")
+	fmt.Printf("create table success, resp: %+v\n", resp)
 	return nil
 }
 
 func dropTable(client ceresdb.Client) error {
 	dropTableSQL := `DROP TABLE demo`
-	req := types.QueryRequest{
-		Metrics: []string{"demo"},
-		Ql:      dropTableSQL,
+	req := types.SQLQueryRequest{
+		Tables: []string{"demo"},
+		SQL:    dropTableSQL,
 	}
-	_, err := client.Query(context.Background(), req)
+	resp, err := client.SQLQuery(context.Background(), req)
 	if err != nil {
-		fmt.Printf("drop table fail, err:%v\n", err)
+		fmt.Printf("drop table fail, err: %v\n", err)
 		return err
 	}
-	fmt.Printf("drop table success\n")
+	fmt.Printf("drop table success, resp: %+v\n", resp)
 	return nil
 }
 
 func writeTable(client ceresdb.Client) error {
-	builder := ceresdb.NewRowBuilder("demo")
-	row, err := builder.
-		SetTimestamp(utils.CurrentMS()).AddTag("name", "test_tag1").AddField("value", 0.4242).Build()
+	points := make([]types.Point, 0, 2)
+	for i := 0; i < 2; i++ {
+		point, err := ceresdb.NewPointBuilder("demo").
+			SetTimestamp(utils.CurrentMS()).
+			AddTag("name", types.NewStringValue("test_tag1")).
+			AddField("value", types.NewDoubleValue(0.4242)).
+			Build()
+		if err != nil {
+			return err
+		}
+		points = append(points, point)
+	}
+	req := types.WriteRequest{
+		Points: points,
+	}
+	resp, err := client.Write(context.Background(), req)
 	if err != nil {
-		fmt.Printf("write table build row fail, err:%v\n", err)
+		fmt.Printf("write table fail, err: %v\n", err)
 		return err
 	}
-	resp, err := client.Write(context.Background(), []*types.Row{row})
-	if err != nil {
-		fmt.Printf("write table fail, err:%v\n", err)
-		return err
+	if resp.Success != 2 {
+		fmt.Printf("write table fail, upexpected response Success: %v\n", resp)
+		return fmt.Errorf("upexpected response: %+v", resp)
 	}
-	if resp.Success != 1 {
-		fmt.Printf("write table fail, upexpected response Success:%v\n", resp)
-		return fmt.Errorf("upexpected response:%v", resp)
-	}
-	fmt.Printf("write table success\n")
+	fmt.Printf("write table success, response: %+v\n", resp)
 	return nil
 }
 
 func queryTable(client ceresdb.Client) error {
 	querySQL := `SELECT * FROM demo`
-	req := types.QueryRequest{
-		Metrics: []string{"demo"},
-		Ql:      querySQL,
+	req := types.SQLQueryRequest{
+		Tables: []string{"demo"},
+		SQL:    querySQL,
 	}
-	resp, err := client.Query(context.Background(), req)
+	resp, err := client.SQLQuery(context.Background(), req)
 	if err != nil {
 		fmt.Printf("query table fail, err:%v\n", err)
 		return err
@@ -94,11 +116,18 @@ func queryTable(client ceresdb.Client) error {
 func main() {
 	fmt.Println("------------------------------------------------------------------")
 	fmt.Println("### new client:")
-	client, err := ceresdb.NewClient(endpoint,
+	client, err := ceresdb.NewClient(endpoint, types.Direct,
+		ceresdb.WithDefaultDatabase("public"),
 		ceresdb.EnableLoggerDebug(true),
 	)
 	if err != nil {
-		fmt.Printf("new ceresdb client fail, err:%v\n", err)
+		fmt.Printf("new ceresdb client fail, err: %v\n", err)
+		return
+	}
+
+	fmt.Println("------------------------------------------------------------------")
+	fmt.Println("### exists table:")
+	if err := existsTable(client); err != nil {
 		return
 	}
 

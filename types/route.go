@@ -2,8 +2,15 @@
 
 package types
 
+type RouteMode int
+
+const (
+	Direct RouteMode = iota
+	Proxy
+)
+
 type Route struct {
-	Metric   string
+	Table    string
 	Endpoint string
 	Ext      []byte
 }
