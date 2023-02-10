@@ -70,22 +70,17 @@ func dropTable(client ceresdb.Client) error {
 }
 
 func writeTable(client ceresdb.Client) error {
-	builder := ceresdb.NewTablePointsBuilder("demo")
-	points, err := builder.
-		AddPoint().
-		SetTimestamp(utils.CurrentMS()).
-		AddTag("name", types.NewStringValue("test_tag1")).
-		AddField("value", types.NewDoubleValue(0.4242)).
-		BuildAndContinue().
-		AddPoint().
-		SetTimestamp(utils.CurrentMS()).
-		AddTag("name", types.NewStringValue("test_tag2")).
-		AddField("value", types.NewDoubleValue(0.2414)).
-		BuildAndContinue().
-		Build()
-	if err != nil {
-		fmt.Printf("write table build row fail, err: %v\n", err)
-		return err
+	points := make([]types.Point, 0, 2)
+	for i := 0; i < 2; i++ {
+		point, err := ceresdb.NewPointBuilder("demo").
+			SetTimestamp(utils.CurrentMS()).
+			AddTag("name", types.NewStringValue("test_tag1")).
+			AddField("value", types.NewDoubleValue(0.4242)).
+			Build()
+		if err != nil {
+			return err
+		}
+		points = append(points, point)
 	}
 	req := types.WriteRequest{
 		Points: points,

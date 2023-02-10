@@ -9,10 +9,10 @@ import (
 
 var (
 	ErrNoDatabaseSelected  = errors.New("no database selected, you can use database in client initial options or WriteRequest/SqlQueryRequest")
-	ErrPointEmptyTable     = errors.New("point table should not be empty")
-	ErrPointEmptyTimestamp = errors.New("point timestamp should not be empty")
-	ErrPointEmptyTags      = errors.New("point tags should not be empty")
-	ErrPointEmptyFields    = errors.New("point fields should not be empty")
+	ErrPointEmptyTable     = errors.New("point's table is not set")
+	ErrPointEmptyTimestamp = errors.New("point's timestamp is not set")
+	ErrPointEmptyTags      = errors.New("point's tags should not be empty")
+	ErrPointEmptyFields    = errors.New("point's fields should not be empty")
 	ErrNullRows            = errors.New("null rows")
 	ErrNullRouteTables     = errors.New("null route tables")
 	ErrNullRequestTables   = errors.New("null request tables")

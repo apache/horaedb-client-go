@@ -70,7 +70,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 		column := record.Column(colIdx)
 		switch column.DataType().ID() {
 		case arrow.STRING:
-			colString, _ := column.(*array.String)
+			colString := column.(*array.String)
 			for rowIdx := 0; rowIdx < colString.Len(); rowIdx++ {
 				if colString.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewStringNullValue()
@@ -79,7 +79,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.FLOAT64:
-			colFloat64, _ := column.(*array.Float64)
+			colFloat64 := column.(*array.Float64)
 			for rowIdx := 0; rowIdx < colFloat64.Len(); rowIdx++ {
 				if colFloat64.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewDoubleNullValue()
@@ -88,7 +88,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.FLOAT32:
-			colFloat32, _ := column.(*array.Float32)
+			colFloat32 := column.(*array.Float32)
 			for rowIdx := 0; rowIdx < colFloat32.Len(); rowIdx++ {
 				if colFloat32.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewFloatNullValue()
@@ -97,7 +97,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.INT64:
-			colInt64, _ := column.(*array.Int64)
+			colInt64 := column.(*array.Int64)
 			for rowIdx := 0; rowIdx < colInt64.Len(); rowIdx++ {
 				if colInt64.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewInt64NullValue()
@@ -106,7 +106,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.INT32:
-			colInt32, _ := column.(*array.Int32)
+			colInt32 := column.(*array.Int32)
 			for rowIdx := 0; rowIdx < colInt32.Len(); rowIdx++ {
 				if colInt32.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewInt32NullValue()
@@ -115,7 +115,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.INT16:
-			colInt16, _ := column.(*array.Int16)
+			colInt16 := column.(*array.Int16)
 			for rowIdx := 0; rowIdx < colInt16.Len(); rowIdx++ {
 				if colInt16.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewInt16NullValue()
@@ -124,7 +124,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.INT8:
-			colInt8, _ := column.(*array.Int8)
+			colInt8 := column.(*array.Int8)
 			for rowIdx := 0; rowIdx < colInt8.Len(); rowIdx++ {
 				if colInt8.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewInt8NullValue()
@@ -133,7 +133,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.UINT64:
-			colUint64, _ := column.(*array.Uint64)
+			colUint64 := column.(*array.Uint64)
 			for rowIdx := 0; rowIdx < colUint64.Len(); rowIdx++ {
 				if colUint64.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewUint64NullValue()
@@ -142,7 +142,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.UINT32:
-			colUint32, _ := column.(*array.Uint32)
+			colUint32 := column.(*array.Uint32)
 			for rowIdx := 0; rowIdx < colUint32.Len(); rowIdx++ {
 				if colUint32.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewUint32NullValue()
@@ -151,7 +151,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.UINT16:
-			colUint16, _ := column.(*array.Uint16)
+			colUint16 := column.(*array.Uint16)
 			for rowIdx := 0; rowIdx < colUint16.Len(); rowIdx++ {
 				if colUint16.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewUint16NullValue()
@@ -160,7 +160,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.UINT8:
-			colUint8, _ := column.(*array.Uint8)
+			colUint8 := column.(*array.Uint8)
 			for rowIdx := 0; rowIdx < colUint8.Len(); rowIdx++ {
 				if colUint8.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewUint8NullValue()
@@ -169,7 +169,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.BOOL:
-			colBool, _ := column.(*array.Boolean)
+			colBool := column.(*array.Boolean)
 			for rowIdx := 0; rowIdx < colBool.Len(); rowIdx++ {
 				if colBool.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewBoolNullValue()
@@ -178,7 +178,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.BINARY:
-			colBinary, _ := column.(*array.Binary)
+			colBinary := column.(*array.Binary)
 			for rowIdx := 0; rowIdx < colBinary.Len(); rowIdx++ {
 				if colBinary.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewVarbinaryNullValue()
@@ -187,7 +187,7 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []types.
 				}
 			}
 		case arrow.TIMESTAMP:
-			colTimestamp, _ := column.(*array.Timestamp)
+			colTimestamp := column.(*array.Timestamp)
 			for rowIdx := 0; rowIdx < colTimestamp.Len(); rowIdx++ {
 				if colTimestamp.IsNull(rowIdx) {
 					rows[rowIdx].Values[field.Name] = types.NewInt64NullValue()

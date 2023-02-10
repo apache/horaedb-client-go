@@ -2,11 +2,11 @@
 
 package types
 
-type RouteMode string
+type RouteMode int
 
 const (
-	Direct RouteMode = "direct"
-	Proxy  RouteMode = "proxy"
+	Direct RouteMode = iota
+	Proxy
 )
 
 type Route struct {
