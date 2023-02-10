@@ -3,6 +3,7 @@
 package types
 
 type WriteRequest struct {
+	ReqCtx   RequestContext
 	Database string
 	Points   []Point
 }

@@ -61,8 +61,10 @@ func TestDatabaseInRequest(t *testing.T) {
 	require.Equal(t, len(points), 3, "build points failed, not expected")
 
 	req := types.WriteRequest{
-		Database: "public",
-		Points:   points,
+		ReqCtx: types.RequestContext{
+			Database: "public",
+		},
+		Points: points,
 	}
 	resp, err := client.Write(context.Background(), req)
 	require.NoError(t, err)

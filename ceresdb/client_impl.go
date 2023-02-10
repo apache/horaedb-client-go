@@ -28,11 +28,15 @@ func newClient(endpoint string, routeMode types.RouteMode, opts options) (Client
 }
 
 func (c *clientImpl) SQLQuery(ctx context.Context, req types.SQLQueryRequest) (types.SQLQueryResponse, error) {
+	if err := c.withDefaultRequestContext(&req.ReqCtx); err != nil {
+		return types.SQLQueryResponse{}, err
+	}
+
 	if len(req.Tables) == 0 {
 		return types.SQLQueryResponse{}, types.ErrNullRequestTables
 	}
 
-	routes, err := c.routeClient.RouteFor(req.Database, req.Tables)
+	routes, err := c.routeClient.RouteFor(req.ReqCtx, req.Tables)
 	if err != nil {
 		return types.SQLQueryResponse{}, fmt.Errorf("Route tables failed, tables:%v, err:%v", req.Tables, err)
 	}
@@ -47,13 +51,17 @@ func (c *clientImpl) SQLQuery(ctx context.Context, req types.SQLQueryRequest) (t
 }
 
 func (c *clientImpl) Write(ctx context.Context, req types.WriteRequest) (types.WriteResponse, error) {
+	if err := c.withDefaultRequestContext(&req.ReqCtx); err != nil {
+		return types.WriteResponse{}, err
+	}
+
 	if len(req.Points) == 0 {
 		return types.WriteResponse{}, types.ErrNullRows
 	}
 
 	tables := utils.GetTablesFromPoints(req.Points)
 
-	routes, err := c.routeClient.RouteFor(req.Database, tables)
+	routes, err := c.routeClient.RouteFor(req.ReqCtx, tables)
 	if err != nil {
 		return types.WriteResponse{}, err
 	}
@@ -67,7 +75,7 @@ func (c *clientImpl) Write(ctx context.Context, req types.WriteRequest) (types.W
 	// Convert to parallel write
 	ret := types.WriteResponse{}
 	for endpoint, points := range pointsByRoute {
-		response, err := c.rpcClient.Write(ctx, endpoint, req.Database, points)
+		response, err := c.rpcClient.Write(ctx, endpoint, req.ReqCtx, points)
 		if err != nil {
 			if ceresdbErr, ok := err.(*types.CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
 				c.routeClient.ClearRouteFor(utils.GetTablesFromPoints(points))
@@ -79,4 +87,17 @@ func (c *clientImpl) Write(ctx context.Context, req types.WriteRequest) (types.W
 		ret = utils.CombineWriteResponse(ret, response)
 	}
 	return ret, nil
+}
+
+func (c *clientImpl) withDefaultRequestContext(reqCtx *types.RequestContext) error {
+	// use default
+	if reqCtx.Database == "" {
+		reqCtx.Database = c.rpcClient.opts.Database
+	}
+
+	// check Request Context
+	if reqCtx.Database == "" {
+		return types.ErrNoDatabaseSelected
+	}
+	return nil
 }

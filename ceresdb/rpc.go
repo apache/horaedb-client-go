@@ -28,11 +28,6 @@ func newRPCClient(opts options) *rpcClient {
 }
 
 func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req types.SQLQueryRequest) (types.SQLQueryResponse, error) {
-	database, err := c.getDatabase(req.Database)
-	if err != nil {
-		return types.SQLQueryResponse{}, err
-	}
-
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
 		return types.SQLQueryResponse{}, err
@@ -41,7 +36,7 @@ func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req types.SQL
 
 	queryRequest := &storagepb.SqlQueryRequest{
 		Context: &storagepb.RequestContext{
-			Database: database,
+			Database: req.ReqCtx.Database,
 		},
 		Tables: req.Tables,
 		Sql:    req.SQL,
@@ -75,12 +70,7 @@ func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req types.SQL
 	}, nil
 }
 
-func (c *rpcClient) Write(ctx context.Context, endpoint, database string, points []types.Point) (types.WriteResponse, error) {
-	database, err := c.getDatabase(database)
-	if err != nil {
-		return types.WriteResponse{}, err
-	}
-
+func (c *rpcClient) Write(ctx context.Context, endpoint string, reqCtx types.RequestContext, points []types.Point) (types.WriteResponse, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
 		return types.WriteResponse{}, err
@@ -92,7 +82,7 @@ func (c *rpcClient) Write(ctx context.Context, endpoint, database string, points
 		return types.WriteResponse{}, err
 	}
 	writeRequest.Context = &storagepb.RequestContext{
-		Database: database,
+		Database: reqCtx.Database,
 	}
 	writeResponse, err := grpcClient.Write(ctx, writeRequest)
 	if err != nil {
@@ -110,12 +100,7 @@ func (c *rpcClient) Write(ctx context.Context, endpoint, database string, points
 	}, nil
 }
 
-func (c *rpcClient) Route(endpoint, database string, tables []string) (map[string]types.Route, error) {
-	database, err := c.getDatabase(database)
-	if err != nil {
-		return nil, err
-	}
-
+func (c *rpcClient) Route(endpoint string, reqCtx types.RequestContext, tables []string) (map[string]types.Route, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
 		return nil, err
@@ -124,7 +109,7 @@ func (c *rpcClient) Route(endpoint, database string, tables []string) (map[strin
 
 	routeRequest := &storagepb.RouteRequest{
 		Context: &storagepb.RequestContext{
-			Database: database,
+			Database: reqCtx.Database,
 		},
 		Tables: tables,
 	}
@@ -175,14 +160,4 @@ func (c *rpcClient) newGrpcConn(endpoint string) (*grpc.ClientConn, error) {
 	}
 	c.connPool.Store(endpoint, conn)
 	return conn, nil
-}
-
-func (c *rpcClient) getDatabase(database string) (string, error) {
-	if database != "" {
-		return database, nil
-	}
-	if c.opts.Database != "" {
-		return c.opts.Database, nil
-	}
-	return "", types.ErrNoDatabaseSelected
 }
