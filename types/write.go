@@ -3,9 +3,8 @@
 package types
 
 type WriteRequest struct {
-	ReqCtx   RequestContext
-	Database string
-	Points   []Point
+	ReqCtx RequestContext
+	Points []Point
 }
 
 type WriteResponse struct {
