@@ -22,11 +22,58 @@ func init() {
 	}
 }
 
+func TestBaseWriteAndQuery(t *testing.T) {
+	t.Skip("ignore local test")
+
+	client, err := ceresdb.NewClient(endpoint, types.Direct, ceresdb.WithDefaultDatabase("public"))
+	require.NoError(t, err, "init ceresdb client failed")
+	timestamp := utils.CurrentMS()
+
+	testBaseWrite(t, client, "ceresdb_test", timestamp, 2)
+	testBaseQuery(t, client, "ceresdb_test", timestamp, 2)
+}
+
+func TestNoDatabaseSelected(t *testing.T) {
+	t.Skip("ignore local test")
+
+	client, err := ceresdb.NewClient(endpoint, types.Direct)
+	require.NoError(t, err, "init ceresdb client failed")
+
+	points, err := buildTablePoints("test", utils.CurrentMS(), 3)
+	require.NoError(t, err, "build points failed")
+	require.Equal(t, len(points), 3, "build points failed, not expected")
+
+	req := types.WriteRequest{
+		Points: points,
+	}
+	_, err = client.Write(context.Background(), req)
+	require.ErrorIs(t, err, types.ErrNoDatabaseSelected)
+}
+
+func TestDatabaseInRequest(t *testing.T) {
+	t.Skip("ignore local test")
+
+	client, err := ceresdb.NewClient(endpoint, types.Direct, ceresdb.WithDefaultDatabase("not_exist_db"))
+	require.NoError(t, err, "init ceresdb client failed")
+
+	points, err := buildTablePoints("test", utils.CurrentMS(), 3)
+	require.NoError(t, err, "build points failed")
+	require.Equal(t, len(points), 3, "build points failed, not expected")
+
+	req := types.WriteRequest{
+		Database: "public",
+		Points:   points,
+	}
+	resp, err := client.Write(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, resp.Success, uint32(3))
+}
+
 // nolint
 func buildTablePoints(table string, timestamp int64, count int) ([]types.Point, error) {
-	tablePointsBuilder := ceresdb.NewTablePointsBuilder(table)
+	points := make([]types.Point, 0, count)
 	for idx := 0; idx < count; idx++ {
-		tablePointsBuilder.AddPoint().
+		point, err := ceresdb.NewPointBuilder(table).
 			SetTimestamp(timestamp).
 			AddTag("tagA", types.NewStringValue(fmt.Sprintf("tagA:%s:%d", table, idx))).
 			AddTag("tagB", types.NewStringValue(fmt.Sprintf("tagB:%s:%d", table, idx))).
@@ -43,20 +90,13 @@ func buildTablePoints(table string, timestamp int64, count int) ([]types.Point, 
 			AddField("vuint16", types.NewUint16Value(16)).
 			AddField("vuint8", types.NewUint8Value(8)).
 			AddField("vbinary", types.NewVarbinaryValue([]byte{1, 2, 3})).
-			BuildAndContinue()
+			Build()
+		if err != nil {
+			return nil, err
+		}
+		points = append(points, point)
 	}
-	return tablePointsBuilder.Build()
-}
-
-func TestBaseWriteAndQuery(t *testing.T) {
-	t.Skip("ignore local test")
-
-	client, err := ceresdb.NewClient(endpoint, types.Direct)
-	require.NoError(t, err, "init ceresdb client failed")
-	timestamp := utils.CurrentMS()
-
-	testBaseWrite(t, client, "ceresdb_test", timestamp, 2)
-	testBaseQuery(t, client, "ceresdb_test", timestamp, 2)
+	return points, nil
 }
 
 // nolint

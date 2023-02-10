@@ -10,7 +10,7 @@ import (
 )
 
 type RouteClient interface {
-	RouteFor([]string) (map[string]types.Route, error)
+	RouteFor(string, []string) (map[string]types.Route, error)
 	ClearRouteFor([]string)
 }
 
@@ -46,7 +46,7 @@ type directRouteClient struct {
 	routeCache *lru.Cache // table -> *Route
 }
 
-func (c *directRouteClient) RouteFor(tables []string) (map[string]types.Route, error) {
+func (c *directRouteClient) RouteFor(database string, tables []string) (map[string]types.Route, error) {
 	if len(tables) == 0 {
 		return nil, types.ErrNullRouteTables
 	}
@@ -66,7 +66,7 @@ func (c *directRouteClient) RouteFor(tables []string) (map[string]types.Route, e
 		return local, nil
 	}
 
-	if err := c.routeFreshFor(misses); err != nil {
+	if err := c.routeFreshFor(database, misses); err != nil {
 		return nil, err
 	}
 
@@ -74,14 +74,14 @@ func (c *directRouteClient) RouteFor(tables []string) (map[string]types.Route, e
 		if v, ok := c.routeCache.Get(table); ok {
 			local[table] = v.(types.Route)
 		} else {
-			return nil, fmt.Errorf("Route not found for table:%s", table)
+			return nil, fmt.Errorf("Route not found for table: %s", table)
 		}
 	}
 	return local, nil
 }
 
-func (c *directRouteClient) routeFreshFor(tables []string) error {
-	routes, err := c.rpcClient.Route(c.endpoint, tables)
+func (c *directRouteClient) routeFreshFor(database string, tables []string) error {
+	routes, err := c.rpcClient.Route(c.endpoint, database, tables)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ type proxyRouteClient struct {
 	rpcClient *rpcClient
 }
 
-func (c *proxyRouteClient) RouteFor(tables []string) (map[string]types.Route, error) {
+func (c *proxyRouteClient) RouteFor(_ string, tables []string) (map[string]types.Route, error) {
 	if len(tables) == 0 {
 		return nil, types.ErrNullRouteTables
 	}

@@ -32,7 +32,7 @@ func (c *clientImpl) SQLQuery(ctx context.Context, req types.SQLQueryRequest) (t
 		return types.SQLQueryResponse{}, types.ErrNullRequestTables
 	}
 
-	routes, err := c.routeClient.RouteFor(req.Tables)
+	routes, err := c.routeClient.RouteFor(req.Database, req.Tables)
 	if err != nil {
 		return types.SQLQueryResponse{}, fmt.Errorf("Route tables failed, tables:%v, err:%v", req.Tables, err)
 	}
@@ -46,19 +46,19 @@ func (c *clientImpl) SQLQuery(ctx context.Context, req types.SQLQueryRequest) (t
 	return types.SQLQueryResponse{}, types.ErrEmptyRoute
 }
 
-func (c *clientImpl) Write(ctx context.Context, request types.WriteRequest) (types.WriteResponse, error) {
-	if len(request.Points) == 0 {
+func (c *clientImpl) Write(ctx context.Context, req types.WriteRequest) (types.WriteResponse, error) {
+	if len(req.Points) == 0 {
 		return types.WriteResponse{}, types.ErrNullRows
 	}
 
-	tables := utils.GetTablesFromPoints(request.Points)
+	tables := utils.GetTablesFromPoints(req.Points)
 
-	routes, err := c.routeClient.RouteFor(tables)
+	routes, err := c.routeClient.RouteFor(req.Database, tables)
 	if err != nil {
 		return types.WriteResponse{}, err
 	}
 
-	pointsByRoute, err := utils.SplitPointsByRoute(request.Points, routes)
+	pointsByRoute, err := utils.SplitPointsByRoute(req.Points, routes)
 	if err != nil {
 		return types.WriteResponse{}, err
 	}
@@ -67,7 +67,7 @@ func (c *clientImpl) Write(ctx context.Context, request types.WriteRequest) (typ
 	// Convert to parallel write
 	ret := types.WriteResponse{}
 	for endpoint, points := range pointsByRoute {
-		response, err := c.rpcClient.Write(ctx, endpoint, points)
+		response, err := c.rpcClient.Write(ctx, endpoint, req.Database, points)
 		if err != nil {
 			if ceresdbErr, ok := err.(*types.CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
 				c.routeClient.ClearRouteFor(utils.GetTablesFromPoints(points))

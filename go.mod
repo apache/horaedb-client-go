@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/AlekSi/gocov-xml v1.1.0
-	github.com/CeresDB/ceresdbproto/golang v0.0.0-20230130094457-55495dd395d1
+	github.com/CeresDB/ceresdbproto/golang v0.0.0-20230209095436-43939799b2e6
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40
 	github.com/axw/gocov v1.1.0
 	github.com/hashicorp/golang-lru v0.6.0

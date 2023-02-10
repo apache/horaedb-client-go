@@ -3,7 +3,8 @@
 package types
 
 type WriteRequest struct {
-	Points []Point
+	Database string
+	Points   []Point
 }
 
 type WriteResponse struct {

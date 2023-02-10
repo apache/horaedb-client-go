@@ -3,8 +3,9 @@
 package types
 
 type SQLQueryRequest struct {
-	Tables []string
-	SQL    string
+	Database string
+	Tables   []string
+	SQL      string
 }
 
 type SQLQueryResponse struct {

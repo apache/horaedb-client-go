@@ -27,7 +27,7 @@ func existsTable(client ceresdb.Client) error {
 	}
 	resp, err := client.SQLQuery(context.Background(), req)
 	if err != nil {
-		fmt.Printf("exists table fail, err:%v\n", err)
+		fmt.Printf("exists table fail, err: %v\n", err)
 		return err
 	}
 	fmt.Printf("exists table success, resp: %+v\n", resp)
@@ -47,10 +47,10 @@ func createTable(client ceresdb.Client) error {
 	}
 	resp, err := client.SQLQuery(context.Background(), req)
 	if err != nil {
-		fmt.Printf("create table fail, err:%v\n", err)
+		fmt.Printf("create table fail, err: %v\n", err)
 		return err
 	}
-	fmt.Printf("create table success, resp:%+v\n", resp)
+	fmt.Printf("create table success, resp: %+v\n", resp)
 	return nil
 }
 
@@ -62,10 +62,10 @@ func dropTable(client ceresdb.Client) error {
 	}
 	resp, err := client.SQLQuery(context.Background(), req)
 	if err != nil {
-		fmt.Printf("drop table fail, err:%v\n", err)
+		fmt.Printf("drop table fail, err: %v\n", err)
 		return err
 	}
-	fmt.Printf("drop table success, resp%+v\n", resp)
+	fmt.Printf("drop table success, resp: %+v\n", resp)
 	return nil
 }
 
@@ -84,7 +84,7 @@ func writeTable(client ceresdb.Client) error {
 		BuildAndContinue().
 		Build()
 	if err != nil {
-		fmt.Printf("write table build row fail, err:%v\n", err)
+		fmt.Printf("write table build row fail, err: %v\n", err)
 		return err
 	}
 	req := types.WriteRequest{
@@ -92,14 +92,14 @@ func writeTable(client ceresdb.Client) error {
 	}
 	resp, err := client.Write(context.Background(), req)
 	if err != nil {
-		fmt.Printf("write table fail, err:%v\n", err)
+		fmt.Printf("write table fail, err: %v\n", err)
 		return err
 	}
 	if resp.Success != 2 {
-		fmt.Printf("write table fail, upexpected response Success:%v\n", resp)
-		return fmt.Errorf("upexpected response:%+v", resp)
+		fmt.Printf("write table fail, upexpected response Success: %v\n", resp)
+		return fmt.Errorf("upexpected response: %+v", resp)
 	}
-	fmt.Printf("write table success, response:%+v\n", resp)
+	fmt.Printf("write table success, response: %+v\n", resp)
 	return nil
 }
 
@@ -122,10 +122,11 @@ func main() {
 	fmt.Println("------------------------------------------------------------------")
 	fmt.Println("### new client:")
 	client, err := ceresdb.NewClient(endpoint, types.Direct,
+		ceresdb.WithDefaultDatabase("public"),
 		ceresdb.EnableLoggerDebug(true),
 	)
 	if err != nil {
-		fmt.Printf("new ceresdb client fail, err:%v\n", err)
+		fmt.Printf("new ceresdb client fail, err: %v\n", err)
 		return
 	}
 

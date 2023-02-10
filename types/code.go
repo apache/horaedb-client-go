@@ -8,6 +8,7 @@ import (
 )
 
 var (
+	ErrNoDatabaseSelected  = errors.New("no database selected, you can use database in client initial options or WriteRequest/SqlQueryRequest")
 	ErrPointEmptyTable     = errors.New("point table should not be empty")
 	ErrPointEmptyTimestamp = errors.New("point timestamp should not be empty")
 	ErrPointEmptyTags      = errors.New("point tags should not be empty")
