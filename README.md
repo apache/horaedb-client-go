@@ -14,7 +14,7 @@ CeresDB is a high-performance, distributed, schema-less, cloud native time-serie
 
 ## How To Use
 
-Reader our [golang SDK docs](https://docs.ceresdb.io/en/sdk/go.html)
+Please refer [Golang SDK docs](https://docs.ceresdb.io/en/sdk/go.html).
 
 ## Contributing
 Any contribution is welcome!
