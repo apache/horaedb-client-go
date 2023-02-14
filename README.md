@@ -4,16 +4,24 @@
 The golang client for CeresDB.
 CeresDB is a high-performance, distributed, schema-less, cloud native time-series database that can handle both time-series and analytics workloads.
 
-# Support features
-- [x] Query
-- [x] Write
+## Support features
+- Manage
+  - creating and alter table
+- Query data
+  - using sql
+- Write data
+  - Point build
 
-# Contributing
+## How To Use
+
+Please refer [Golang SDK docs](https://docs.ceresdb.io/en/sdk/go.html).
+
+## Contributing
 Any contribution is welcome!
 
 Read our [Contributing Guide](https://github.com/CeresDB/ceresdb/blob/main/CONTRIBUTING.md) and make your first contribution!
 
-# License
+## License
 Under [Apache License 2.0](./LICENSE).
 
 ## Community and support
