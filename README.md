@@ -16,11 +16,6 @@ CeresDB is a high-performance, distributed, schema-less, cloud native time-serie
 
 Please refer [Golang SDK docs](https://docs.ceresdb.io/en/sdk/go.html).
 
-## Contributing
-Any contribution is welcome!
-
-Read our [Contributing Guide](https://github.com/CeresDB/ceresdb/blob/main/CONTRIBUTING.md) and make your first contribution!
-
 ## License
 Under [Apache License 2.0](./LICENSE).
 
