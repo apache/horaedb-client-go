@@ -8,8 +8,7 @@ CeresDB is a high-performance, distributed, schema-less, cloud native time-serie
 
 ## Support features
 - DDL, such as create/alter table
-- Query using SQL
-- Write using gRPC
+- Write and query support in both standalone and cluster mode
 
 ## How To Use
 
