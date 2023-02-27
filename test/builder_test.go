@@ -6,16 +6,14 @@ import (
 	"testing"
 
 	"github.com/CeresDB/ceresdb-client-go/ceresdb"
-	"github.com/CeresDB/ceresdb-client-go/types"
-	"github.com/CeresDB/ceresdb-client-go/utils"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPointBuilder(t *testing.T) {
 	point, err := ceresdb.NewPointBuilder("test").
-		SetTimestamp(utils.CurrentMS()).
-		AddTag("tagA", types.NewStringValue("a")).
-		AddField("filedA", types.NewFloatValue(0.24)).
+		SetTimestamp(currentMS()).
+		AddTag("tagA", ceresdb.NewStringValue("a")).
+		AddField("filedA", ceresdb.NewFloatValue(0.24)).
 		Build()
 
 	require.NoError(t, err)
@@ -26,46 +24,46 @@ func TestPointBuilder(t *testing.T) {
 
 func TestPointBuilderWithEmptyTableErr(t *testing.T) {
 	_, err := ceresdb.NewPointBuilder("").
-		SetTimestamp(utils.CurrentMS()).
-		AddTag("tagA", types.NewStringValue("a")).
-		AddField("filedA", types.NewFloatValue(0.24)).
+		SetTimestamp(currentMS()).
+		AddTag("tagA", ceresdb.NewStringValue("a")).
+		AddField("filedA", ceresdb.NewFloatValue(0.24)).
 		Build()
 
-	require.ErrorIs(t, err, types.ErrPointEmptyTable)
+	require.ErrorIs(t, err, ceresdb.ErrPointEmptyTable)
 }
 
 func TestPointBuilderWithEmptyTimestampErr(t *testing.T) {
 	_, err := ceresdb.NewPointBuilder("test").
-		AddTag("tagA", types.NewStringValue("a")).
-		AddField("filedA", types.NewFloatValue(0.24)).
+		AddTag("tagA", ceresdb.NewStringValue("a")).
+		AddField("filedA", ceresdb.NewFloatValue(0.24)).
 		Build()
 
-	require.ErrorIs(t, err, types.ErrPointEmptyTimestamp)
+	require.ErrorIs(t, err, ceresdb.ErrPointEmptyTimestamp)
 }
 
 func TestPointBuilderWithEmptyTagsErr(t *testing.T) {
 	_, err := ceresdb.NewPointBuilder("test").
-		SetTimestamp(utils.CurrentMS()).
-		AddField("filedA", types.NewFloatValue(0.24)).
+		SetTimestamp(currentMS()).
+		AddField("filedA", ceresdb.NewFloatValue(0.24)).
 		Build()
 
-	require.ErrorIs(t, err, types.ErrPointEmptyTags)
+	require.ErrorIs(t, err, ceresdb.ErrPointEmptyTags)
 }
 
 func TestPointBuilderWithEmptyFieldsErr(t *testing.T) {
 	_, err := ceresdb.NewPointBuilder("test").
-		SetTimestamp(utils.CurrentMS()).
-		AddTag("tagA", types.NewStringValue("a")).
+		SetTimestamp(currentMS()).
+		AddTag("tagA", ceresdb.NewStringValue("a")).
 		Build()
 
-	require.ErrorIs(t, err, types.ErrPointEmptyFields)
+	require.ErrorIs(t, err, ceresdb.ErrPointEmptyFields)
 }
 
 func TestPointBuilderWithReservedColumn(t *testing.T) {
 	_, err := ceresdb.NewPointBuilder("test").
-		SetTimestamp(utils.CurrentMS()).
-		AddTag("tsid", types.NewStringValue("a")).
-		AddField("filedA", types.NewFloatValue(0.24)).
+		SetTimestamp(currentMS()).
+		AddTag("tsid", ceresdb.NewStringValue("a")).
+		AddField("filedA", ceresdb.NewFloatValue(0.24)).
 		Build()
 
 	require.ErrorContains(t, err, "tag name is reserved column name in ceresdb")

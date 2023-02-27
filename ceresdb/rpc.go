@@ -3,13 +3,18 @@
 package ceresdb
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"sync"
 
-	"github.com/CeresDB/ceresdb-client-go/types"
-	"github.com/CeresDB/ceresdb-client-go/utils"
 	"github.com/CeresDB/ceresdbproto/golang/pkg/storagepb"
+	"github.com/apache/arrow/go/arrow"
+	"github.com/apache/arrow/go/arrow/array"
+	"github.com/apache/arrow/go/arrow/ipc"
+	"github.com/klauspost/compress/zstd"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -27,10 +32,10 @@ func newRPCClient(opts options) *rpcClient {
 	}
 }
 
-func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req types.SQLQueryRequest) (types.SQLQueryResponse, error) {
+func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req SQLQueryRequest) (SQLQueryResponse, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
-		return types.SQLQueryResponse{}, err
+		return SQLQueryResponse{}, err
 	}
 	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
@@ -43,64 +48,64 @@ func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req types.SQL
 	}
 	queryResponse, err := grpcClient.SqlQuery(ctx, queryRequest)
 	if err != nil {
-		return types.SQLQueryResponse{}, err
+		return SQLQueryResponse{}, err
 	}
-	if queryResponse.Header.Code != types.CodeSuccess {
-		return types.SQLQueryResponse{}, &types.CeresdbError{
+	if queryResponse.Header.Code != codeSuccess {
+		return SQLQueryResponse{}, &CeresdbError{
 			Code: queryResponse.Header.Code,
 			Err:  queryResponse.Header.Error,
 		}
 	}
 
 	if affectedPayload, ok := queryResponse.Output.(*storagepb.SqlQueryResponse_AffectedRows); ok {
-		return types.SQLQueryResponse{
+		return SQLQueryResponse{
 			SQL:          req.SQL,
 			AffectedRows: affectedPayload.AffectedRows,
 		}, nil
 	}
 
-	rows, err := utils.ParseQueryResponse(queryResponse)
+	rows, err := parseQueryResponse(queryResponse)
 	if err != nil {
-		return types.SQLQueryResponse{}, err
+		return SQLQueryResponse{}, err
 	}
-	return types.SQLQueryResponse{
+	return SQLQueryResponse{
 		SQL:          req.SQL,
 		AffectedRows: queryResponse.GetAffectedRows(),
 		Rows:         rows,
 	}, nil
 }
 
-func (c *rpcClient) Write(ctx context.Context, endpoint string, reqCtx types.RequestContext, points []types.Point) (types.WriteResponse, error) {
+func (c *rpcClient) Write(ctx context.Context, endpoint string, reqCtx RequestContext, points []Point) (WriteResponse, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
-		return types.WriteResponse{}, err
+		return WriteResponse{}, err
 	}
 	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
-	writeRequest, err := utils.BuildPbWriteRequest(points)
+	writeRequest, err := buildPbWriteRequest(points)
 	if err != nil {
-		return types.WriteResponse{}, err
+		return WriteResponse{}, err
 	}
 	writeRequest.Context = &storagepb.RequestContext{
 		Database: reqCtx.Database,
 	}
 	writeResponse, err := grpcClient.Write(ctx, writeRequest)
 	if err != nil {
-		return types.WriteResponse{}, err
+		return WriteResponse{}, err
 	}
-	if writeResponse.Header.Code != types.CodeSuccess {
-		return types.WriteResponse{}, &types.CeresdbError{
+	if writeResponse.Header.Code != codeSuccess {
+		return WriteResponse{}, &CeresdbError{
 			Code: writeResponse.Header.Code,
 			Err:  writeResponse.Header.Error,
 		}
 	}
-	return types.WriteResponse{
+	return WriteResponse{
 		Success: writeResponse.Success,
 		Failed:  writeResponse.Failed,
 	}, nil
 }
 
-func (c *rpcClient) Route(endpoint string, reqCtx types.RequestContext, tables []string) (map[string]types.Route, error) {
+func (c *rpcClient) Route(endpoint string, reqCtx RequestContext, tables []string) (map[string]route, error) {
 	grpcConn, err := c.getGrpcConn(endpoint)
 	if err != nil {
 		return nil, err
@@ -117,17 +122,17 @@ func (c *rpcClient) Route(endpoint string, reqCtx types.RequestContext, tables [
 	if err != nil {
 		return nil, err
 	}
-	if routeResponse.Header.Code != types.CodeSuccess {
-		return nil, &types.CeresdbError{
+	if routeResponse.Header.Code != codeSuccess {
+		return nil, &CeresdbError{
 			Code: routeResponse.Header.Code,
 			Err:  routeResponse.Header.Error,
 		}
 	}
 
-	routes := make(map[string]types.Route, len(routeResponse.Routes))
+	routes := make(map[string]route, len(routeResponse.Routes))
 	for _, r := range routeResponse.Routes {
 		endpoint := fmt.Sprintf("%s:%d", r.Endpoint.Ip, r.Endpoint.Port)
-		routes[r.Table] = types.Route{
+		routes[r.Table] = route{
 			Table:    r.Table,
 			Endpoint: endpoint,
 			Ext:      r.Ext,
@@ -160,4 +165,398 @@ func (c *rpcClient) newGrpcConn(endpoint string) (*grpc.ClientConn, error) {
 	}
 	c.connPool.Store(endpoint, conn)
 	return conn, nil
+}
+
+func buildPbWriteRequest(points []Point) (*storagepb.WriteRequest, error) {
+	tuples := make(map[string]*writeTuple) // table -> tuple
+
+	for _, point := range points {
+		tuple, ok := tuples[point.Table]
+		if !ok {
+			tuple = &writeTuple{
+				writeSeriesEntries: map[string]*storagepb.WriteSeriesEntry{},
+				orderedTags:        orderedNames{nameIndexes: map[string]int{}},
+				orderedFields:      orderedNames{nameIndexes: map[string]int{}},
+			}
+			tuples[point.Table] = tuple
+		}
+
+		seriesKey := ""
+		for tagK := range point.Tags {
+			tuple.orderedTags.insert(tagK)
+		}
+		for _, orderedTag := range tuple.orderedTags.toOrdered() {
+			seriesKey += point.Tags[orderedTag].StringValue()
+		}
+
+		writeEntry, ok := tuple.writeSeriesEntries[seriesKey]
+		if !ok {
+			writeEntry = &storagepb.WriteSeriesEntry{
+				Tags:        make([]*storagepb.Tag, 0, len(point.Tags)),
+				FieldGroups: make([]*storagepb.FieldGroup, 0, 1),
+			}
+			for idx, orderedTag := range tuple.orderedTags.toOrdered() {
+				tagV := point.Tags[orderedTag]
+				if tagV.IsNull() {
+					continue
+				}
+				writeEntry.Tags = append(writeEntry.Tags, &storagepb.Tag{
+					NameIndex: uint32(idx),
+					Value: &storagepb.Value{
+						Value: &storagepb.Value_StringValue{
+							StringValue: tagV.StringValue(),
+						},
+					},
+				})
+			}
+			tuple.writeSeriesEntries[seriesKey] = writeEntry
+		}
+
+		fieldGroup := &storagepb.FieldGroup{
+			Timestamp: point.Timestamp,
+			Fields:    make([]*storagepb.Field, 0, len(point.Fields)),
+		}
+		for fieldK, fieldV := range point.Fields {
+			idx := tuple.orderedFields.insert(fieldK)
+			if fieldV.IsNull() {
+				continue
+			}
+			pbV, err := buildPbValue(fieldV)
+			if err != nil {
+				return nil, err
+			}
+			fieldGroup.Fields = append(fieldGroup.Fields, &storagepb.Field{
+				NameIndex: uint32(idx),
+				Value:     pbV,
+			})
+		}
+		writeEntry.FieldGroups = append(writeEntry.FieldGroups, fieldGroup)
+	}
+
+	writeRequest := &storagepb.WriteRequest{
+		TableRequests: make([]*storagepb.WriteTableRequest, 0, len(tuples)),
+	}
+	for table, tuple := range tuples {
+		writeTableReq := storagepb.WriteTableRequest{
+			Table:   table,
+			Entries: []*storagepb.WriteSeriesEntry{},
+		}
+		writeTableReq.TagNames = tuple.orderedTags.toOrdered()
+		writeTableReq.FieldNames = tuple.orderedFields.toOrdered()
+		for _, writeSeriesEntry := range tuple.writeSeriesEntries {
+			writeTableReq.Entries = append(writeTableReq.Entries, writeSeriesEntry)
+		}
+		writeRequest.TableRequests = append(writeRequest.TableRequests, &writeTableReq)
+	}
+	return writeRequest, nil
+}
+
+func buildPbValue(v Value) (*storagepb.Value, error) {
+	switch v.DataType() {
+	case BOOL:
+		return &storagepb.Value{
+			Value: &storagepb.Value_BoolValue{
+				BoolValue: v.BoolValue(),
+			},
+		}, nil
+	case STRING:
+		return &storagepb.Value{
+			Value: &storagepb.Value_StringValue{
+				StringValue: v.StringValue(),
+			},
+		}, nil
+	case DOUBLE:
+		return &storagepb.Value{
+			Value: &storagepb.Value_Float64Value{
+				Float64Value: v.DoubleValue(),
+			},
+		}, nil
+	case FLOAT:
+		return &storagepb.Value{
+			Value: &storagepb.Value_Float32Value{
+				Float32Value: v.FloatValue(),
+			},
+		}, nil
+	case INT64:
+		return &storagepb.Value{
+			Value: &storagepb.Value_Int64Value{
+				Int64Value: v.Int64Value(),
+			},
+		}, nil
+	case INT32:
+		return &storagepb.Value{
+			Value: &storagepb.Value_Int32Value{
+				Int32Value: v.Int32Value(),
+			},
+		}, nil
+	case INT16:
+		return &storagepb.Value{
+			Value: &storagepb.Value_Int16Value{
+				Int16Value: int32(v.Int16Value()),
+			},
+		}, nil
+	case INT8:
+		return &storagepb.Value{
+			Value: &storagepb.Value_Int8Value{
+				Int8Value: int32(v.Int8Value()),
+			},
+		}, nil
+	case UINT64:
+		return &storagepb.Value{
+			Value: &storagepb.Value_Uint64Value{
+				Uint64Value: v.Uint64Value(),
+			},
+		}, nil
+	case UINT32:
+		return &storagepb.Value{
+			Value: &storagepb.Value_Uint32Value{
+				Uint32Value: v.Uint32Value(),
+			},
+		}, nil
+	case UINT16:
+		return &storagepb.Value{
+			Value: &storagepb.Value_Uint16Value{
+				Uint16Value: uint32(v.Uint16Value()),
+			},
+		}, nil
+	case UINT8:
+		return &storagepb.Value{
+			Value: &storagepb.Value_Uint8Value{
+				Uint8Value: uint32(v.Uint8Value()),
+			},
+		}, nil
+	case VARBINARY:
+		return &storagepb.Value{
+			Value: &storagepb.Value_VarbinaryValue{
+				VarbinaryValue: v.VarbinaryValue(),
+			},
+		}, nil
+	default:
+		return nil, errors.New("invalid field type in build pb")
+	}
+}
+
+type writeTuple struct {
+	writeSeriesEntries map[string]*storagepb.WriteSeriesEntry // seriesKey -> entry
+	orderedTags        orderedNames
+	orderedFields      orderedNames
+}
+
+// for sort keys
+// index grows linearly with the insertion order
+type orderedNames struct {
+	curIndex    int            // cur largest curIndex
+	nameIndexes map[string]int // name -> curIndex
+}
+
+func (d *orderedNames) insert(name string) int {
+	idx, ok := d.nameIndexes[name]
+	if ok {
+		return idx
+	}
+	idx = d.curIndex
+	d.nameIndexes[name] = idx
+	d.curIndex = idx + 1
+	return idx
+}
+
+func (d *orderedNames) toOrdered() []string {
+	if d.curIndex == 0 {
+		return []string{}
+	}
+
+	order := make([]string, d.curIndex)
+	for name, idx := range d.nameIndexes {
+		order[idx] = name
+	}
+	return order
+}
+
+func parseQueryResponse(response *storagepb.SqlQueryResponse) ([]Row, error) {
+	arrowPayload, ok := response.Output.(*storagepb.SqlQueryResponse_Arrow)
+	if !ok {
+		return nil, ErrOnlyArrowSupport
+	}
+	if len(arrowPayload.Arrow.RecordBatches) == 0 {
+		return nil, ErrNullRows
+	}
+
+	rowCount := 0
+	rowBatches := make([][]Row, 0, len(arrowPayload.Arrow.RecordBatches))
+	for _, batch := range arrowPayload.Arrow.RecordBatches {
+		buffer := io.Reader(bytes.NewReader(batch))
+
+		if arrowPayload.Arrow.Compression == storagepb.ArrowPayload_ZSTD {
+			zstdReader, err := zstd.NewReader(buffer)
+			if err != nil {
+				return nil, err
+			}
+			buffer = zstdReader
+		}
+
+		reader, err := ipc.NewReader(buffer)
+		if err != nil {
+			return nil, err
+		}
+		schema := reader.Schema()
+		for reader.Next() {
+			record := reader.Record()
+			rowsBatch := convertArrowRecordToRow(schema, record)
+			rowCount += len(rowsBatch)
+			rowBatches = append(rowBatches, rowsBatch)
+		}
+		reader.Release()
+	}
+
+	rows := make([]Row, 0, rowCount)
+	for _, rowBatch := range rowBatches {
+		rows = append(rows, rowBatch...)
+	}
+
+	return rows, nil
+}
+
+func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []Row {
+	rows := make([]Row, record.NumRows())
+	for rowIdx := range rows {
+		rows[rowIdx] = Row{
+			Values: make(map[string]Value, record.NumCols()),
+		}
+	}
+
+	for colIdx, field := range schema.Fields() {
+		column := record.Column(colIdx)
+		switch column.DataType().ID() {
+		case arrow.STRING:
+			colString := column.(*array.String)
+			for rowIdx := 0; rowIdx < colString.Len(); rowIdx++ {
+				if colString.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewStringNullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewStringValue(colString.Value(rowIdx))
+				}
+			}
+		case arrow.FLOAT64:
+			colFloat64 := column.(*array.Float64)
+			for rowIdx := 0; rowIdx < colFloat64.Len(); rowIdx++ {
+				if colFloat64.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewDoubleNullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewDoubleValue(colFloat64.Value(rowIdx))
+				}
+			}
+		case arrow.FLOAT32:
+			colFloat32 := column.(*array.Float32)
+			for rowIdx := 0; rowIdx < colFloat32.Len(); rowIdx++ {
+				if colFloat32.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewFloatNullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewFloatValue(colFloat32.Value(rowIdx))
+				}
+			}
+		case arrow.INT64:
+			colInt64 := column.(*array.Int64)
+			for rowIdx := 0; rowIdx < colInt64.Len(); rowIdx++ {
+				if colInt64.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewInt64NullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewInt64Value(colInt64.Value(rowIdx))
+				}
+			}
+		case arrow.INT32:
+			colInt32 := column.(*array.Int32)
+			for rowIdx := 0; rowIdx < colInt32.Len(); rowIdx++ {
+				if colInt32.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewInt32NullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewInt32Value(colInt32.Value(rowIdx))
+				}
+			}
+		case arrow.INT16:
+			colInt16 := column.(*array.Int16)
+			for rowIdx := 0; rowIdx < colInt16.Len(); rowIdx++ {
+				if colInt16.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewInt16NullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewInt16Value(colInt16.Value(rowIdx))
+				}
+			}
+		case arrow.INT8:
+			colInt8 := column.(*array.Int8)
+			for rowIdx := 0; rowIdx < colInt8.Len(); rowIdx++ {
+				if colInt8.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewInt8NullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewInt8Value(colInt8.Value(rowIdx))
+				}
+			}
+		case arrow.UINT64:
+			colUint64 := column.(*array.Uint64)
+			for rowIdx := 0; rowIdx < colUint64.Len(); rowIdx++ {
+				if colUint64.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewUint64NullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewUint64Value(colUint64.Value(rowIdx))
+				}
+			}
+		case arrow.UINT32:
+			colUint32 := column.(*array.Uint32)
+			for rowIdx := 0; rowIdx < colUint32.Len(); rowIdx++ {
+				if colUint32.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewUint32NullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewUint32Value(colUint32.Value(rowIdx))
+				}
+			}
+		case arrow.UINT16:
+			colUint16 := column.(*array.Uint16)
+			for rowIdx := 0; rowIdx < colUint16.Len(); rowIdx++ {
+				if colUint16.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewUint16NullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewUint16Value(colUint16.Value(rowIdx))
+				}
+			}
+		case arrow.UINT8:
+			colUint8 := column.(*array.Uint8)
+			for rowIdx := 0; rowIdx < colUint8.Len(); rowIdx++ {
+				if colUint8.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewUint8NullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewUint8Value(colUint8.Value(rowIdx))
+				}
+			}
+		case arrow.BOOL:
+			colBool := column.(*array.Boolean)
+			for rowIdx := 0; rowIdx < colBool.Len(); rowIdx++ {
+				if colBool.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewBoolNullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewBoolValue(colBool.Value(rowIdx))
+				}
+			}
+		case arrow.BINARY:
+			colBinary := column.(*array.Binary)
+			for rowIdx := 0; rowIdx < colBinary.Len(); rowIdx++ {
+				if colBinary.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewVarbinaryNullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewVarbinaryValue(colBinary.Value(rowIdx))
+				}
+			}
+		case arrow.TIMESTAMP:
+			colTimestamp := column.(*array.Timestamp)
+			for rowIdx := 0; rowIdx < colTimestamp.Len(); rowIdx++ {
+				if colTimestamp.IsNull(rowIdx) {
+					rows[rowIdx].Values[field.Name] = NewInt64NullValue()
+				} else {
+					rows[rowIdx].Values[field.Name] = NewInt64Value(int64(colTimestamp.Value(rowIdx)))
+				}
+			}
+		default:
+			//
+		}
+	}
+
+	return rows
 }

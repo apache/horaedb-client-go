@@ -1,6 +1,20 @@
 // Copyright 2022 CeresDB Project Authors. Licensed under Apache-2.0.
 
-package types
+package ceresdb
+
+type RequestContext struct {
+	Database string
+}
+
+type WriteRequest struct {
+	ReqCtx RequestContext
+	Points []Point
+}
+
+type WriteResponse struct {
+	Success uint32
+	Failed  uint32
+}
 
 type SQLQueryRequest struct {
 	ReqCtx RequestContext

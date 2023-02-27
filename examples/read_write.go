@@ -6,10 +6,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/CeresDB/ceresdb-client-go/ceresdb"
-	"github.com/CeresDB/ceresdb-client-go/types"
-	"github.com/CeresDB/ceresdb-client-go/utils"
 )
 
 var endpoint = "127.0.0.1:8831"
@@ -21,7 +20,7 @@ func init() {
 }
 
 func existsTable(client ceresdb.Client) error {
-	req := types.SQLQueryRequest{
+	req := ceresdb.SQLQueryRequest{
 		Tables: []string{"demo"},
 		SQL:    "EXISTS TABLE demo",
 	}
@@ -41,7 +40,7 @@ func createTable(client ceresdb.Client) error {
 	t timestamp NOT NULL,
 	TIMESTAMP KEY(t)) ENGINE=Analytic with (enable_ttl=false)`
 
-	req := types.SQLQueryRequest{
+	req := ceresdb.SQLQueryRequest{
 		Tables: []string{"demo"},
 		SQL:    createTableSQL,
 	}
@@ -56,7 +55,7 @@ func createTable(client ceresdb.Client) error {
 
 func dropTable(client ceresdb.Client) error {
 	dropTableSQL := `DROP TABLE demo`
-	req := types.SQLQueryRequest{
+	req := ceresdb.SQLQueryRequest{
 		Tables: []string{"demo"},
 		SQL:    dropTableSQL,
 	}
@@ -70,19 +69,20 @@ func dropTable(client ceresdb.Client) error {
 }
 
 func writeTable(client ceresdb.Client) error {
-	points := make([]types.Point, 0, 2)
+	nowInMs := time.Now().UnixNano() / int64(time.Millisecond)
+	points := make([]ceresdb.Point, 0, 2)
 	for i := 0; i < 2; i++ {
 		point, err := ceresdb.NewPointBuilder("demo").
-			SetTimestamp(utils.CurrentMS()).
-			AddTag("name", types.NewStringValue("test_tag1")).
-			AddField("value", types.NewDoubleValue(0.4242)).
+			SetTimestamp(nowInMs).
+			AddTag("name", ceresdb.NewStringValue("test_tag1")).
+			AddField("value", ceresdb.NewDoubleValue(0.4242)).
 			Build()
 		if err != nil {
 			return err
 		}
 		points = append(points, point)
 	}
-	req := types.WriteRequest{
+	req := ceresdb.WriteRequest{
 		Points: points,
 	}
 	resp, err := client.Write(context.Background(), req)
@@ -100,7 +100,7 @@ func writeTable(client ceresdb.Client) error {
 
 func queryTable(client ceresdb.Client) error {
 	querySQL := `SELECT * FROM demo`
-	req := types.SQLQueryRequest{
+	req := ceresdb.SQLQueryRequest{
 		Tables: []string{"demo"},
 		SQL:    querySQL,
 	}
@@ -116,7 +116,7 @@ func queryTable(client ceresdb.Client) error {
 func main() {
 	fmt.Println("------------------------------------------------------------------")
 	fmt.Println("### new client:")
-	client, err := ceresdb.NewClient(endpoint, types.Direct,
+	client, err := ceresdb.NewClient(endpoint, ceresdb.Direct,
 		ceresdb.WithDefaultDatabase("public"),
 		ceresdb.EnableLoggerDebug(true),
 	)

@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"github.com/CeresDB/ceresdb-client-go/ceresdb"
-	"github.com/CeresDB/ceresdb-client-go/types"
-	"github.com/CeresDB/ceresdb-client-go/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,12 +22,12 @@ func init() {
 func TestClusterMultiWriteAndQuery(t *testing.T) {
 	t.Skip("ignore local test")
 
-	client, err := ceresdb.NewClient(clusterEndpoint, types.Direct,
+	client, err := ceresdb.NewClient(clusterEndpoint, ceresdb.Direct,
 		ceresdb.EnableLoggerDebug(true),
 	)
 	require.NoError(t, err, "init ceresdb client failed")
 
-	timestamp := utils.CurrentMS()
+	timestamp := currentMS()
 
 	table1Points, err := buildTablePoints("ceresdb_route_test1", timestamp, 2)
 	require.NoError(t, err, "build table1 points failed")
@@ -39,7 +37,7 @@ func TestClusterMultiWriteAndQuery(t *testing.T) {
 
 	table1Points = append(table1Points, table2Points...)
 
-	req := types.WriteRequest{
+	req := ceresdb.WriteRequest{
 		Points: table1Points,
 	}
 	resp, err := client.Write(context.Background(), req)

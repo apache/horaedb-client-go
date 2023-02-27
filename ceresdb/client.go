@@ -4,16 +4,21 @@ package ceresdb
 
 import (
 	"context"
+)
 
-	"github.com/CeresDB/ceresdb-client-go/types"
+type RouteMode int
+
+const (
+	Direct RouteMode = iota
+	Proxy
 )
 
 type Client interface {
-	Write(context.Context, types.WriteRequest) (types.WriteResponse, error)
-	SQLQuery(context.Context, types.SQLQueryRequest) (types.SQLQueryResponse, error)
+	Write(context.Context, WriteRequest) (WriteResponse, error)
+	SQLQuery(context.Context, SQLQueryRequest) (SQLQueryResponse, error)
 }
 
-func NewClient(endpoint string, routeMode types.RouteMode, opts ...Option) (Client, error) {
+func NewClient(endpoint string, routeMode RouteMode, opts ...Option) (Client, error) {
 	defaultOpts := defaultOptions()
 	for _, opt := range opts {
 		opt.apply(defaultOpts)
