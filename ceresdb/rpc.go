@@ -135,7 +135,6 @@ func (c *rpcClient) Route(endpoint string, reqCtx RequestContext, tables []strin
 		routes[r.Table] = route{
 			Table:    r.Table,
 			Endpoint: endpoint,
-			Ext:      r.Ext,
 		}
 	}
 	return routes, nil

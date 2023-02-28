@@ -11,7 +11,6 @@ import (
 type route struct {
 	Table    string
 	Endpoint string
-	Ext      []byte
 }
 
 type routeClient interface {
