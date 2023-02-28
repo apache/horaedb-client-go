@@ -1,6 +1,6 @@
 // Copyright 2022 CeresDB Project Authors. Licensed under Apache-2.0.
 
-package types
+package ceresdb
 
 import (
 	"errors"
@@ -21,10 +21,10 @@ var (
 )
 
 const (
-	CodeSuccess      = 200
-	CodeInvalidRoute = 302
-	CodeShouldRetry  = 310
-	CodeFlowControl  = 503
+	codeSuccess      = 200
+	codeInvalidRoute = 302
+	codeShouldRetry  = 310
+	codeFlowControl  = 503
 )
 
 type CeresdbError struct {
@@ -42,5 +42,5 @@ func (e *CeresdbError) ShouldRetry() bool {
 }
 
 func (e *CeresdbError) ShouldClearRoute() bool {
-	return e.Code == CodeInvalidRoute
+	return e.Code == codeInvalidRoute
 }

@@ -4,27 +4,32 @@ package ceresdb
 
 import (
 	"fmt"
-
-	"github.com/CeresDB/ceresdb-client-go/types"
 )
 
 const (
-	ReservedColumnTsid      = "tsid"
-	ReservedColumnTimestamp = "timestamp"
+	reservedColumnTsid      = "tsid"
+	reservedColumnTimestamp = "timestamp"
 )
+
+type Point struct {
+	Table     string
+	Timestamp int64
+	Tags      map[string]Value
+	Fields    map[string]Value
+}
 
 func NewPointBuilder(table string) *PointBuilder {
 	return &PointBuilder{
-		point: types.Point{
+		point: Point{
 			Table:  table,
-			Tags:   make(map[string]types.Value),
-			Fields: make(map[string]types.Value),
+			Tags:   make(map[string]Value),
+			Fields: make(map[string]Value),
 		},
 	}
 }
 
 type PointBuilder struct {
-	point types.Point
+	point Point
 }
 
 func (b *PointBuilder) SetTimestamp(timestamp int64) *PointBuilder {
@@ -32,39 +37,39 @@ func (b *PointBuilder) SetTimestamp(timestamp int64) *PointBuilder {
 	return b
 }
 
-func (b *PointBuilder) AddTag(k string, v types.Value) *PointBuilder {
+func (b *PointBuilder) AddTag(k string, v Value) *PointBuilder {
 	b.point.Tags[k] = v
 	return b
 }
 
-func (b *PointBuilder) AddField(k string, v types.Value) *PointBuilder {
+func (b *PointBuilder) AddField(k string, v Value) *PointBuilder {
 	b.point.Fields[k] = v
 	return b
 }
 
-func (b *PointBuilder) Build() (types.Point, error) {
+func (b *PointBuilder) Build() (Point, error) {
 	err := checkPoint(b.point)
 	if err != nil {
-		return types.Point{}, err
+		return Point{}, err
 	}
 	return b.point, nil
 }
 
-func checkPoint(point types.Point) error {
+func checkPoint(point Point) error {
 	if point.Table == "" {
-		return types.ErrPointEmptyTable
+		return ErrPointEmptyTable
 	}
 
 	if point.Timestamp <= 0 {
-		return types.ErrPointEmptyTimestamp
+		return ErrPointEmptyTimestamp
 	}
 
 	if len(point.Tags) == 0 {
-		return types.ErrPointEmptyTags
+		return ErrPointEmptyTags
 	}
 
 	if len(point.Fields) == 0 {
-		return types.ErrPointEmptyFields
+		return ErrPointEmptyFields
 	}
 
 	for tagK := range point.Tags {
@@ -77,5 +82,5 @@ func checkPoint(point types.Point) error {
 }
 
 func isReservedColumn(name string) bool {
-	return name == ReservedColumnTsid || name == ReservedColumnTimestamp
+	return name == reservedColumnTsid || name == reservedColumnTimestamp
 }

@@ -5,18 +5,23 @@ package ceresdb
 import (
 	"fmt"
 
-	"github.com/CeresDB/ceresdb-client-go/types"
 	lru "github.com/hashicorp/golang-lru"
 )
 
-type RouteClient interface {
-	RouteFor(types.RequestContext, []string) (map[string]types.Route, error)
+type route struct {
+	Table    string
+	Endpoint string
+	Ext      []byte
+}
+
+type routeClient interface {
+	RouteFor(RequestContext, []string) (map[string]route, error)
 	ClearRouteFor([]string)
 }
 
-func newRouteClient(endpoint string, routeMode types.RouteMode, rpcClient *rpcClient, opts options) (RouteClient, error) {
+func newRouteClient(endpoint string, routeMode RouteMode, rpcClient *rpcClient, opts options) (routeClient, error) {
 	switch routeMode {
-	case types.Direct:
+	case Direct:
 		routeClient := &directRouteClient{
 			opts:      opts,
 			endpoint:  endpoint,
@@ -28,7 +33,7 @@ func newRouteClient(endpoint string, routeMode types.RouteMode, rpcClient *rpcCl
 		}
 		routeClient.routeCache = routeCache
 		return routeClient, nil
-	case types.Proxy:
+	case Proxy:
 		routeClient := &proxyRouteClient{
 			endpoint:  endpoint,
 			rpcClient: rpcClient,
@@ -43,20 +48,20 @@ type directRouteClient struct {
 	opts       options
 	endpoint   string
 	rpcClient  *rpcClient
-	routeCache *lru.Cache // table -> *Route
+	routeCache *lru.Cache // table -> *route
 }
 
-func (c *directRouteClient) RouteFor(reqCtx types.RequestContext, tables []string) (map[string]types.Route, error) {
+func (c *directRouteClient) RouteFor(reqCtx RequestContext, tables []string) (map[string]route, error) {
 	if len(tables) == 0 {
-		return nil, types.ErrNullRouteTables
+		return nil, ErrNullRouteTables
 	}
 
-	local := make(map[string]types.Route, len(tables))
+	local := make(map[string]route, len(tables))
 	misses := make([]string, 0, len(tables))
 
 	for _, table := range tables {
 		if v, ok := c.routeCache.Get(table); ok {
-			local[table] = v.(types.Route)
+			local[table] = v.(route)
 		} else {
 			misses = append(misses, table)
 		}
@@ -72,9 +77,9 @@ func (c *directRouteClient) RouteFor(reqCtx types.RequestContext, tables []strin
 
 	for _, table := range misses {
 		if v, ok := c.routeCache.Get(table); ok {
-			local[table] = v.(types.Route)
+			local[table] = v.(route)
 		} else {
-			local[table] = types.Route{
+			local[table] = route{
 				Table:    table,
 				Endpoint: c.endpoint,
 			}
@@ -83,7 +88,7 @@ func (c *directRouteClient) RouteFor(reqCtx types.RequestContext, tables []strin
 	return local, nil
 }
 
-func (c *directRouteClient) routeFreshFor(reqCtx types.RequestContext, tables []string) error {
+func (c *directRouteClient) routeFreshFor(reqCtx RequestContext, tables []string) error {
 	routes, err := c.rpcClient.Route(c.endpoint, reqCtx, tables)
 	if err != nil {
 		return err
@@ -115,14 +120,14 @@ type proxyRouteClient struct {
 	rpcClient *rpcClient
 }
 
-func (c *proxyRouteClient) RouteFor(_ types.RequestContext, tables []string) (map[string]types.Route, error) {
+func (c *proxyRouteClient) RouteFor(_ RequestContext, tables []string) (map[string]route, error) {
 	if len(tables) == 0 {
-		return nil, types.ErrNullRouteTables
+		return nil, ErrNullRouteTables
 	}
 
-	routes := make(map[string]types.Route, len(tables))
+	routes := make(map[string]route, len(tables))
 	for _, table := range tables {
-		routes[table] = types.Route{
+		routes[table] = route{
 			Table:    table,
 			Endpoint: c.endpoint,
 		}

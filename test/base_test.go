@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/CeresDB/ceresdb-client-go/ceresdb"
-	"github.com/CeresDB/ceresdb-client-go/types"
-	"github.com/CeresDB/ceresdb-client-go/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,12 +21,16 @@ func init() {
 	}
 }
 
+func currentMS() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
+}
+
 func TestBaseWriteAndQuery(t *testing.T) {
 	t.Skip("ignore local test")
 
-	client, err := ceresdb.NewClient(endpoint, types.Direct, ceresdb.WithDefaultDatabase("public"))
+	client, err := ceresdb.NewClient(endpoint, ceresdb.Direct, ceresdb.WithDefaultDatabase("public"))
 	require.NoError(t, err, "init ceresdb client failed")
-	timestamp := utils.CurrentMS()
+	timestamp := currentMS()
 
 	testBaseWrite(t, client, "ceresdb_test", timestamp, 2)
 	testBaseQuery(t, client, "ceresdb_test", timestamp, 2)
@@ -36,32 +39,32 @@ func TestBaseWriteAndQuery(t *testing.T) {
 func TestNoDatabaseSelected(t *testing.T) {
 	t.Skip("ignore local test")
 
-	client, err := ceresdb.NewClient(endpoint, types.Direct)
+	client, err := ceresdb.NewClient(endpoint, ceresdb.Direct)
 	require.NoError(t, err, "init ceresdb client failed")
 
-	points, err := buildTablePoints("test", utils.CurrentMS(), 3)
+	points, err := buildTablePoints("test", currentMS(), 3)
 	require.NoError(t, err, "build points failed")
 	require.Equal(t, len(points), 3, "build points failed, not expected")
 
-	req := types.WriteRequest{
+	req := ceresdb.WriteRequest{
 		Points: points,
 	}
 	_, err = client.Write(context.Background(), req)
-	require.ErrorIs(t, err, types.ErrNoDatabaseSelected)
+	require.ErrorIs(t, err, ceresdb.ErrNoDatabaseSelected)
 }
 
 func TestDatabaseInRequest(t *testing.T) {
 	t.Skip("ignore local test")
 
-	client, err := ceresdb.NewClient(endpoint, types.Direct, ceresdb.WithDefaultDatabase("not_exist_db"))
+	client, err := ceresdb.NewClient(endpoint, ceresdb.Direct, ceresdb.WithDefaultDatabase("not_exist_db"))
 	require.NoError(t, err, "init ceresdb client failed")
 
-	points, err := buildTablePoints("test", utils.CurrentMS(), 3)
+	points, err := buildTablePoints("ceresdb_test", currentMS(), 3)
 	require.NoError(t, err, "build points failed")
 	require.Equal(t, len(points), 3, "build points failed, not expected")
 
-	req := types.WriteRequest{
-		ReqCtx: types.RequestContext{
+	req := ceresdb.WriteRequest{
+		ReqCtx: ceresdb.RequestContext{
 			Database: "public",
 		},
 		Points: points,
@@ -72,26 +75,26 @@ func TestDatabaseInRequest(t *testing.T) {
 }
 
 // nolint
-func buildTablePoints(table string, timestamp int64, count int) ([]types.Point, error) {
-	points := make([]types.Point, 0, count)
+func buildTablePoints(table string, timestamp int64, count int) ([]ceresdb.Point, error) {
+	points := make([]ceresdb.Point, 0, count)
 	for idx := 0; idx < count; idx++ {
 		point, err := ceresdb.NewPointBuilder(table).
 			SetTimestamp(timestamp).
-			AddTag("tagA", types.NewStringValue(fmt.Sprintf("tagA:%s:%d", table, idx))).
-			AddTag("tagB", types.NewStringValue(fmt.Sprintf("tagB:%s:%d", table, idx))).
-			AddField("vbool", types.NewBoolValue(true)).
-			AddField("vstring", types.NewStringValue(fmt.Sprintf("row%d", idx))).
-			AddField("vfloat64", types.NewDoubleValue(0.64)).
-			AddField("vfloat32", types.NewFloatValue(0.32)).
-			AddField("vint64", types.NewInt64Value(-64)).
-			AddField("vint32", types.NewInt32Value(-32)).
-			AddField("vint16", types.NewInt16Value(-16)).
-			AddField("vint8", types.NewInt8Value(-8)).
-			AddField("vuint64", types.NewUint64Value(64)).
-			AddField("vuint32", types.NewUint32Value(32)).
-			AddField("vuint16", types.NewUint16Value(16)).
-			AddField("vuint8", types.NewUint8Value(8)).
-			AddField("vbinary", types.NewVarbinaryValue([]byte{1, 2, 3})).
+			AddTag("tagA", ceresdb.NewStringValue(fmt.Sprintf("tagA:%s:%d", table, idx))).
+			AddTag("tagB", ceresdb.NewStringValue(fmt.Sprintf("tagB:%s:%d", table, idx))).
+			AddField("vbool", ceresdb.NewBoolValue(true)).
+			AddField("vstring", ceresdb.NewStringValue(fmt.Sprintf("row%d", idx))).
+			AddField("vfloat64", ceresdb.NewDoubleValue(0.64)).
+			AddField("vfloat32", ceresdb.NewFloatValue(0.32)).
+			AddField("vint64", ceresdb.NewInt64Value(-64)).
+			AddField("vint32", ceresdb.NewInt32Value(-32)).
+			AddField("vint16", ceresdb.NewInt16Value(-16)).
+			AddField("vint8", ceresdb.NewInt8Value(-8)).
+			AddField("vuint64", ceresdb.NewUint64Value(64)).
+			AddField("vuint32", ceresdb.NewUint32Value(32)).
+			AddField("vuint16", ceresdb.NewUint16Value(16)).
+			AddField("vuint8", ceresdb.NewUint8Value(8)).
+			AddField("vbinary", ceresdb.NewVarbinaryValue([]byte{1, 2, 3})).
 			Build()
 		if err != nil {
 			return nil, err
@@ -107,7 +110,7 @@ func testBaseWrite(t *testing.T, client ceresdb.Client, table string, timestamp 
 	require.NoError(t, err, "build points failed")
 	require.Equal(t, len(points), count, "build points failed, not expected")
 
-	req := types.WriteRequest{
+	req := ceresdb.WriteRequest{
 		Points: points,
 	}
 	resp, err := client.Write(context.Background(), req)
@@ -120,7 +123,7 @@ func testBaseWrite(t *testing.T, client ceresdb.Client, table string, timestamp 
 
 // nolint
 func testBaseQuery(t *testing.T, client ceresdb.Client, table string, timestamp int64, count int) {
-	req := types.SQLQueryRequest{
+	req := ceresdb.SQLQueryRequest{
 		Tables: []string{table},
 		SQL:    fmt.Sprintf("select * from %s where timestamp = %d", table, timestamp),
 	}

@@ -7,21 +7,19 @@ import (
 	"time"
 
 	"github.com/CeresDB/ceresdb-client-go/ceresdb"
-	"github.com/CeresDB/ceresdb-client-go/types"
-	"github.com/CeresDB/ceresdb-client-go/utils"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRouteGc(t *testing.T) {
 	t.Skip("ignore local test")
 
-	client, err := ceresdb.NewClient(clusterEndpoint, types.Direct,
+	client, err := ceresdb.NewClient(clusterEndpoint, ceresdb.Direct,
 		ceresdb.EnableLoggerDebug(true),
 		ceresdb.WithRouteMaxCacheSize(3),
 	)
 	require.NoError(t, err, "init ceresdb client failed")
 
-	timestamp := utils.CurrentMS()
+	timestamp := currentMS()
 
 	testBaseWrite(t, client, "ceresdb_route_test1", timestamp, 1)
 	time.Sleep(time.Second)
@@ -43,12 +41,12 @@ func TestRouteGc(t *testing.T) {
 func TestRouteProxy(t *testing.T) {
 	t.Skip("ignore local test")
 
-	client, err := ceresdb.NewClient(clusterEndpoint, types.Proxy,
+	client, err := ceresdb.NewClient(clusterEndpoint, ceresdb.Proxy,
 		ceresdb.EnableLoggerDebug(true),
 		ceresdb.WithRouteMaxCacheSize(3),
 	)
 	require.NoError(t, err, "init ceresdb client failed")
 
-	timestamp := utils.CurrentMS()
+	timestamp := currentMS()
 	testBaseWrite(t, client, "ceresdb_route_test1", timestamp, 1)
 }
