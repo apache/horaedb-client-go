@@ -28,18 +28,49 @@ type SQLQueryResponse struct {
 	Rows         []Row
 }
 
-type Row struct {
-	Values map[string]Value
+type Column struct {
+	name  string
+	value Value
 }
 
-func (r Row) HasColumn(column string) bool {
-	_, ok := r.Values[column]
+func (c Column) Name() string {
+	return c.name
+}
+
+func (c Column) Value() Value {
+	return c.value
+}
+
+type Row struct {
+	fields []string
+	values []Value
+}
+
+func (r Row) HasColumn(name string) bool {
+	_, ok := r.getColumnIdx(name)
 	return ok
 }
 
-func (r Row) ColumnValue(column string) Value {
-	if v, ok := r.Values[column]; ok {
-		return v
+func (r Row) Column(name string) (Column, bool) {
+	if idx, ok := r.getColumnIdx(name); ok {
+		return Column{name, r.values[idx]}, true
 	}
-	return Value{}
+	return Column{}, false
+}
+
+func (r Row) Columns() []Column {
+	columns := make([]Column, 0, len(r.values))
+	for idx, field := range r.fields {
+		columns = append(columns, Column{field, r.values[idx]})
+	}
+	return columns
+}
+
+func (r Row) getColumnIdx(name string) (int, bool) {
+	for idx, field := range r.fields {
+		if field == name {
+			return idx, true
+		}
+	}
+	return -1, false
 }
