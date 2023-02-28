@@ -47,14 +47,15 @@ type Row struct {
 }
 
 func (r Row) HasColumn(name string) bool {
-	return r.getColumnIdx(name) > -1
+	_, ok := r.getColumnIdx(name)
+	return ok
 }
 
-func (r Row) Column(name string) Column {
-	if idx := r.getColumnIdx(name); idx > -1 {
-		return Column{name, r.values[idx]}
+func (r Row) Column(name string) (Column, bool) {
+	if idx, ok := r.getColumnIdx(name); ok {
+		return Column{name, r.values[idx]}, true
 	}
-	return Column{}
+	return Column{}, false
 }
 
 func (r Row) Columns() []Column {
@@ -65,11 +66,11 @@ func (r Row) Columns() []Column {
 	return columns
 }
 
-func (r Row) getColumnIdx(name string) int {
+func (r Row) getColumnIdx(name string) (int, bool) {
 	for idx, field := range r.fields {
 		if field == name {
-			return idx
+			return idx, true
 		}
 	}
-	return -1
+	return -1, false
 }
