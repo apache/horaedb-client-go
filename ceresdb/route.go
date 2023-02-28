@@ -79,7 +79,10 @@ func (c *directRouteClient) RouteFor(reqCtx RequestContext, tables []string) (ma
 		if v, ok := c.routeCache.Get(table); ok {
 			local[table] = v.(route)
 		} else {
-			return nil, fmt.Errorf("route not found for table: %s", table)
+			local[table] = route{
+				Table:    table,
+				Endpoint: c.endpoint,
+			}
 		}
 	}
 	return local, nil
