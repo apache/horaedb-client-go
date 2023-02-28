@@ -59,7 +59,7 @@ func TestDatabaseInRequest(t *testing.T) {
 	client, err := ceresdb.NewClient(endpoint, ceresdb.Direct, ceresdb.WithDefaultDatabase("not_exist_db"))
 	require.NoError(t, err, "init ceresdb client failed")
 
-	points, err := buildTablePoints("test", currentMS(), 3)
+	points, err := buildTablePoints("ceresdb_test", currentMS(), 3)
 	require.NoError(t, err, "build points failed")
 	require.Equal(t, len(points), 3, "build points failed, not expected")
 
