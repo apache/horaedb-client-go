@@ -138,67 +138,67 @@ func testBaseQuery(t *testing.T, client ceresdb.Client, table string, timestamp 
 	row1 := rows[0]
 
 	require.True(t, row1.HasColumn("timestamp"), "column timestamp not found")
-	ts := row1.ColumnValue("timestamp").TimestampValue()
+	ts := row1.Column("timestamp").Value().TimestampValue()
 	require.Equal(t, ts, timestamp, "timestamp int not expected")
 
 	require.True(t, row1.HasColumn("tagA"), "column tagA not found")
-	t1 := row1.ColumnValue("tagA").StringValue()
+	t1 := row1.Column("tagA").Value().StringValue()
 	require.Contains(t, t1, fmt.Sprintf("tagA:%s", table), "tag t1 is not expected")
 
 	require.True(t, row1.HasColumn("tagB"), "column tagB not found")
-	t2 := row1.ColumnValue("tagB").StringValue()
+	t2 := row1.Column("tagB").Value().StringValue()
 	require.Contains(t, t2, fmt.Sprintf("tagB:%s", table), "tag t2 is not expected")
 
 	require.True(t, row1.HasColumn("vbool"), "column vbool not found")
-	vBool := row1.ColumnValue("vbool").BoolValue()
+	vBool := row1.Column("vbool").Value().BoolValue()
 	require.Equal(t, vBool, true, "vbool is not expected")
 
 	require.True(t, row1.HasColumn("vstring"), "column vstring not found")
-	vString := row1.ColumnValue("vstring").StringValue()
+	vString := row1.Column("vstring").Value().StringValue()
 	require.Contains(t, vString, "row", "vstring is not expected")
 
 	require.True(t, row1.HasColumn("vfloat64"), "column vfloat64 not found")
-	vFloat64 := row1.ColumnValue("vfloat64").DoubleValue()
+	vFloat64 := row1.Column("vfloat64").Value().DoubleValue()
 	require.Equal(t, vFloat64, float64(0.64), "vfloat64 is not expected")
 
 	require.True(t, row1.HasColumn("vfloat32"), "column vfloat32 not found")
-	vFloat32 := row1.ColumnValue("vfloat32").FloatValue()
+	vFloat32 := row1.Column("vfloat32").Value().FloatValue()
 	require.Equal(t, vFloat32, float32(0.32), "vfloat32 is not expected")
 
 	require.True(t, row1.HasColumn("vint64"), "column vint64 not found")
-	vInt64 := row1.ColumnValue("vint64").Int64Value()
+	vInt64 := row1.Column("vint64").Value().Int64Value()
 	require.Equal(t, vInt64, int64(-64), "vint64 is not expected")
 
 	require.True(t, row1.HasColumn("vint32"), "column vint32 not found")
-	vInt32 := row1.ColumnValue("vint32").Int32Value()
+	vInt32 := row1.Column("vint32").Value().Int32Value()
 	require.Equal(t, vInt32, int32(-32), "vint32 is not expected")
 
 	require.True(t, row1.HasColumn("vint16"), "column vint16 not found")
-	vInt16 := row1.ColumnValue("vint16").Int16Value()
+	vInt16 := row1.Column("vint16").Value().Int16Value()
 	require.Equal(t, vInt16, int16(-16), "vint16 is not expected")
 
 	require.True(t, row1.HasColumn("vint8"), "column vint8 not found")
-	vInt8 := row1.ColumnValue("vint8").Int8Value()
+	vInt8 := row1.Column("vint8").Value().Int8Value()
 	require.Equal(t, vInt8, int8(-8), "vint8 is not expected")
 
 	require.True(t, row1.HasColumn("vuint64"), "column vuint64 not found")
-	vUInt64 := row1.ColumnValue("vuint64").Uint64Value()
+	vUInt64 := row1.Column("vuint64").Value().Uint64Value()
 	require.Equal(t, vUInt64, uint64(64), "vuint64 is not expected")
 
 	require.True(t, row1.HasColumn("vuint32"), "column vuint32 not found")
-	vUInt32 := row1.ColumnValue("vuint32").Uint32Value()
+	vUInt32 := row1.Column("vuint32").Value().Uint32Value()
 	require.Equal(t, vUInt32, uint32(32), "vuint32 is not expected")
 
 	require.True(t, row1.HasColumn("vuint16"), "column vuint16 not found")
-	vUInt16 := row1.ColumnValue("vuint16").Uint16Value()
+	vUInt16 := row1.Column("vuint16").Value().Uint16Value()
 	require.Equal(t, vUInt16, uint16(16), "vuint16 is not expected")
 
 	require.True(t, row1.HasColumn("vuint8"), "column vuint8 not found")
-	vUInt8 := row1.ColumnValue("vuint8").Uint8Value()
+	vUInt8 := row1.Column("vuint8").Value().Uint8Value()
 	require.Equal(t, vUInt8, uint8(8), "vuint8 is not expected")
 
 	require.True(t, row1.HasColumn("vbinary"), "column vbinary not found")
-	vBinary := row1.ColumnValue("vbinary").VarbinaryValue()
+	vBinary := row1.Column("vbinary").Value().VarbinaryValue()
 	require.Equal(t, vBinary, []byte{1, 2, 3}, "vbinary is not expected")
 
 	t.Log(table + " base query is paas")

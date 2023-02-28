@@ -420,142 +420,148 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []Row {
 	rows := make([]Row, record.NumRows())
 	for rowIdx := range rows {
 		rows[rowIdx] = Row{
-			Values: make(map[string]Value, record.NumCols()),
+			values: make([]Value, record.NumCols()),
 		}
 	}
 
+	fields := make([]string, len(schema.Fields()))
 	for colIdx, field := range schema.Fields() {
+		fields[colIdx] = field.Name
 		column := record.Column(colIdx)
 		switch column.DataType().ID() {
 		case arrow.STRING:
 			colString := column.(*array.String)
 			for rowIdx := 0; rowIdx < colString.Len(); rowIdx++ {
 				if colString.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewStringNullValue()
+					rows[rowIdx].values[colIdx] = NewStringNullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewStringValue(colString.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewStringValue(colString.Value(rowIdx))
 				}
 			}
 		case arrow.FLOAT64:
 			colFloat64 := column.(*array.Float64)
 			for rowIdx := 0; rowIdx < colFloat64.Len(); rowIdx++ {
 				if colFloat64.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewDoubleNullValue()
+					rows[rowIdx].values[colIdx] = NewDoubleNullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewDoubleValue(colFloat64.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewDoubleValue(colFloat64.Value(rowIdx))
 				}
 			}
 		case arrow.FLOAT32:
 			colFloat32 := column.(*array.Float32)
 			for rowIdx := 0; rowIdx < colFloat32.Len(); rowIdx++ {
 				if colFloat32.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewFloatNullValue()
+					rows[rowIdx].values[colIdx] = NewFloatNullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewFloatValue(colFloat32.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewFloatValue(colFloat32.Value(rowIdx))
 				}
 			}
 		case arrow.INT64:
 			colInt64 := column.(*array.Int64)
 			for rowIdx := 0; rowIdx < colInt64.Len(); rowIdx++ {
 				if colInt64.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewInt64NullValue()
+					rows[rowIdx].values[colIdx] = NewInt64NullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewInt64Value(colInt64.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewInt64Value(colInt64.Value(rowIdx))
 				}
 			}
 		case arrow.INT32:
 			colInt32 := column.(*array.Int32)
 			for rowIdx := 0; rowIdx < colInt32.Len(); rowIdx++ {
 				if colInt32.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewInt32NullValue()
+					rows[rowIdx].values[colIdx] = NewInt32NullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewInt32Value(colInt32.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewInt32Value(colInt32.Value(rowIdx))
 				}
 			}
 		case arrow.INT16:
 			colInt16 := column.(*array.Int16)
 			for rowIdx := 0; rowIdx < colInt16.Len(); rowIdx++ {
 				if colInt16.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewInt16NullValue()
+					rows[rowIdx].values[colIdx] = NewInt16NullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewInt16Value(colInt16.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewInt16Value(colInt16.Value(rowIdx))
 				}
 			}
 		case arrow.INT8:
 			colInt8 := column.(*array.Int8)
 			for rowIdx := 0; rowIdx < colInt8.Len(); rowIdx++ {
 				if colInt8.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewInt8NullValue()
+					rows[rowIdx].values[colIdx] = NewInt8NullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewInt8Value(colInt8.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewInt8Value(colInt8.Value(rowIdx))
 				}
 			}
 		case arrow.UINT64:
 			colUint64 := column.(*array.Uint64)
 			for rowIdx := 0; rowIdx < colUint64.Len(); rowIdx++ {
 				if colUint64.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewUint64NullValue()
+					rows[rowIdx].values[colIdx] = NewUint64NullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewUint64Value(colUint64.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewUint64Value(colUint64.Value(rowIdx))
 				}
 			}
 		case arrow.UINT32:
 			colUint32 := column.(*array.Uint32)
 			for rowIdx := 0; rowIdx < colUint32.Len(); rowIdx++ {
 				if colUint32.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewUint32NullValue()
+					rows[rowIdx].values[colIdx] = NewUint32NullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewUint32Value(colUint32.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewUint32Value(colUint32.Value(rowIdx))
 				}
 			}
 		case arrow.UINT16:
 			colUint16 := column.(*array.Uint16)
 			for rowIdx := 0; rowIdx < colUint16.Len(); rowIdx++ {
 				if colUint16.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewUint16NullValue()
+					rows[rowIdx].values[colIdx] = NewUint16NullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewUint16Value(colUint16.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewUint16Value(colUint16.Value(rowIdx))
 				}
 			}
 		case arrow.UINT8:
 			colUint8 := column.(*array.Uint8)
 			for rowIdx := 0; rowIdx < colUint8.Len(); rowIdx++ {
 				if colUint8.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewUint8NullValue()
+					rows[rowIdx].values[colIdx] = NewUint8NullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewUint8Value(colUint8.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewUint8Value(colUint8.Value(rowIdx))
 				}
 			}
 		case arrow.BOOL:
 			colBool := column.(*array.Boolean)
 			for rowIdx := 0; rowIdx < colBool.Len(); rowIdx++ {
 				if colBool.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewBoolNullValue()
+					rows[rowIdx].values[colIdx] = NewBoolNullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewBoolValue(colBool.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewBoolValue(colBool.Value(rowIdx))
 				}
 			}
 		case arrow.BINARY:
 			colBinary := column.(*array.Binary)
 			for rowIdx := 0; rowIdx < colBinary.Len(); rowIdx++ {
 				if colBinary.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewVarbinaryNullValue()
+					rows[rowIdx].values[colIdx] = NewVarbinaryNullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewVarbinaryValue(colBinary.Value(rowIdx))
+					rows[rowIdx].values[colIdx] = NewVarbinaryValue(colBinary.Value(rowIdx))
 				}
 			}
 		case arrow.TIMESTAMP:
 			colTimestamp := column.(*array.Timestamp)
 			for rowIdx := 0; rowIdx < colTimestamp.Len(); rowIdx++ {
 				if colTimestamp.IsNull(rowIdx) {
-					rows[rowIdx].Values[field.Name] = NewInt64NullValue()
+					rows[rowIdx].values[colIdx] = NewInt64NullValue()
 				} else {
-					rows[rowIdx].Values[field.Name] = NewInt64Value(int64(colTimestamp.Value(rowIdx)))
+					rows[rowIdx].values[colIdx] = NewInt64Value(int64(colTimestamp.Value(rowIdx)))
 				}
 			}
 		default:
 			//
 		}
+	}
+
+	for rowIdx := range rows {
+		rows[rowIdx].fields = fields
 	}
 
 	return rows

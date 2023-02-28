@@ -31,7 +31,7 @@ func (v Value) DataType() DataType {
 	return v.dataType
 }
 
-func (v Value) Value() interface{} {
+func (v Value) AnyValue() interface{} {
 	return v.dataValue
 }
 
