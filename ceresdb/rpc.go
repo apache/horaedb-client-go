@@ -37,8 +37,8 @@ func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req SQLQueryR
 	if err != nil {
 		return SQLQueryResponse{}, err
 	}
-	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
+	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 	queryRequest := &storagepb.SqlQueryRequest{
 		Context: &storagepb.RequestContext{
 			Database: req.ReqCtx.Database,
@@ -50,7 +50,8 @@ func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req SQLQueryR
 	if err != nil {
 		return SQLQueryResponse{}, err
 	}
-	if queryResponse.Header.Code != codeSuccess {
+
+	if queryResponse.Header != nil && queryResponse.Header.Code != codeSuccess {
 		return SQLQueryResponse{}, &CeresdbError{
 			Code: queryResponse.Header.Code,
 			Err:  queryResponse.Header.Error,
@@ -68,6 +69,7 @@ func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req SQLQueryR
 	if err != nil {
 		return SQLQueryResponse{}, err
 	}
+
 	return SQLQueryResponse{
 		SQL:          req.SQL,
 		AffectedRows: queryResponse.GetAffectedRows(),
@@ -80,12 +82,13 @@ func (c *rpcClient) Write(ctx context.Context, endpoint string, reqCtx RequestCo
 	if err != nil {
 		return WriteResponse{}, err
 	}
-	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 
+	grpcClient := storagepb.NewStorageServiceClient(grpcConn)
 	writeRequest, err := buildPbWriteRequest(points)
 	if err != nil {
 		return WriteResponse{}, err
 	}
+
 	writeRequest.Context = &storagepb.RequestContext{
 		Database: reqCtx.Database,
 	}
@@ -93,12 +96,14 @@ func (c *rpcClient) Write(ctx context.Context, endpoint string, reqCtx RequestCo
 	if err != nil {
 		return WriteResponse{}, err
 	}
-	if writeResponse.Header.Code != codeSuccess {
+
+	if writeResponse.Header != nil && writeResponse.Header.Code != codeSuccess {
 		return WriteResponse{}, &CeresdbError{
 			Code: writeResponse.Header.Code,
 			Err:  writeResponse.Header.Error,
 		}
 	}
+
 	return WriteResponse{
 		Success: writeResponse.Success,
 		Failed:  writeResponse.Failed,
@@ -122,7 +127,8 @@ func (c *rpcClient) Route(endpoint string, reqCtx RequestContext, tables []strin
 	if err != nil {
 		return nil, err
 	}
-	if routeResponse.Header.Code != codeSuccess {
+
+	if routeResponse.Header != nil && routeResponse.Header.Code != codeSuccess {
 		return nil, &CeresdbError{
 			Code: routeResponse.Header.Code,
 			Err:  routeResponse.Header.Error,
@@ -131,10 +137,9 @@ func (c *rpcClient) Route(endpoint string, reqCtx RequestContext, tables []strin
 
 	routes := make(map[string]route, len(routeResponse.Routes))
 	for _, r := range routeResponse.Routes {
-		endpoint := fmt.Sprintf("%s:%d", r.Endpoint.Ip, r.Endpoint.Port)
 		routes[r.Table] = route{
 			Table:    r.Table,
-			Endpoint: endpoint,
+			Endpoint: fmt.Sprintf("%s:%d", r.Endpoint.Ip, r.Endpoint.Port),
 		}
 	}
 	return routes, nil
@@ -162,6 +167,7 @@ func (c *rpcClient) newGrpcConn(endpoint string) (*grpc.ClientConn, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	c.connPool.Store(endpoint, conn)
 	return conn, nil
 }
