@@ -51,7 +51,14 @@ func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req SQLQueryR
 		return SQLQueryResponse{}, err
 	}
 
-	if queryResponse.Header != nil && queryResponse.Header.Code != codeSuccess {
+	if queryResponse.Header != nil {
+		return SQLQueryResponse{}, &CeresdbError{
+			Code: codeInternal,
+			Err:  ErrResponseHeaderMiss.Error(),
+		}
+	}
+
+	if queryResponse.Header.Code != codeSuccess {
 		return SQLQueryResponse{}, &CeresdbError{
 			Code: queryResponse.Header.Code,
 			Err:  queryResponse.Header.Error,
@@ -97,7 +104,14 @@ func (c *rpcClient) Write(ctx context.Context, endpoint string, reqCtx RequestCo
 		return WriteResponse{}, err
 	}
 
-	if writeResponse.Header != nil && writeResponse.Header.Code != codeSuccess {
+	if writeResponse.Header != nil {
+		return WriteResponse{}, &CeresdbError{
+			Code: codeInternal,
+			Err:  ErrResponseHeaderMiss.Error(),
+		}
+	}
+
+	if writeResponse.Header.Code != codeSuccess {
 		return WriteResponse{}, &CeresdbError{
 			Code: writeResponse.Header.Code,
 			Err:  writeResponse.Header.Error,
@@ -128,7 +142,14 @@ func (c *rpcClient) Route(endpoint string, reqCtx RequestContext, tables []strin
 		return nil, err
 	}
 
-	if routeResponse.Header != nil && routeResponse.Header.Code != codeSuccess {
+	if routeResponse.Header != nil {
+		return nil, &CeresdbError{
+			Code: codeInternal,
+			Err:  ErrResponseHeaderMiss.Error(),
+		}
+	}
+
+	if routeResponse.Header.Code != codeSuccess {
 		return nil, &CeresdbError{
 			Code: routeResponse.Header.Code,
 			Err:  routeResponse.Header.Error,
@@ -561,7 +582,6 @@ func convertArrowRecordToRow(schema *arrow.Schema, record array.Record) []Row {
 				}
 			}
 		default:
-			//
 		}
 	}
 
