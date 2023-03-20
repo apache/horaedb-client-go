@@ -18,12 +18,14 @@ var (
 	ErrNullRequestTables   = errors.New("null request tables")
 	ErrEmptyRoute          = errors.New("empty route")
 	ErrOnlyArrowSupport    = errors.New("only arrow support now")
+	ErrResponseHeaderMiss  = errors.New("response header miss")
 )
 
 const (
 	codeSuccess      = 200
 	codeInvalidRoute = 302
 	codeShouldRetry  = 310
+	codeInternal     = 500
 	codeFlowControl  = 503
 )
 
