@@ -51,7 +51,7 @@ func (c *rpcClient) SQLQuery(ctx context.Context, endpoint string, req SQLQueryR
 		return SQLQueryResponse{}, err
 	}
 
-	if queryResponse.Header != nil {
+	if queryResponse.Header == nil {
 		return SQLQueryResponse{}, &CeresdbError{
 			Code: codeInternal,
 			Err:  ErrResponseHeaderMiss.Error(),
@@ -104,7 +104,7 @@ func (c *rpcClient) Write(ctx context.Context, endpoint string, reqCtx RequestCo
 		return WriteResponse{}, err
 	}
 
-	if writeResponse.Header != nil {
+	if writeResponse.Header == nil {
 		return WriteResponse{}, &CeresdbError{
 			Code: codeInternal,
 			Err:  ErrResponseHeaderMiss.Error(),
@@ -142,7 +142,7 @@ func (c *rpcClient) Route(endpoint string, reqCtx RequestContext, tables []strin
 		return nil, err
 	}
 
-	if routeResponse.Header != nil {
+	if routeResponse.Header == nil {
 		return nil, &CeresdbError{
 			Code: codeInternal,
 			Err:  ErrResponseHeaderMiss.Error(),
