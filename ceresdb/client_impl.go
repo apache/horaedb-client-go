@@ -70,20 +70,37 @@ func (c *clientImpl) Write(ctx context.Context, req WriteRequest) (WriteResponse
 
 	// TODO
 	// Convert to parallel write
-	ret := WriteResponse{}
-	for endpoint, points := range pointsByRoute {
-		response, err := c.rpcClient.Write(ctx, endpoint, req.ReqCtx, points)
+	combinedResponse := WriteResponse{}
+	combinedError := CeresdbWriteError{
+		SuccessTables: make([][]string, 0, len(pointsByRoute)),
+		SuccessOk:     make([]WriteResponse, 0, len(pointsByRoute)),
+		FailedTables:  make([][]string, 0, len(pointsByRoute)),
+		Errors:        make([]error, 0, len(pointsByRoute)),
+	}
+	for endpoint, partPoints := range pointsByRoute {
+		// TODO
+		// Get part tables from splitPointsByRoute
+		partTables := getTablesFromPoints(partPoints)
+
+		response, err := c.rpcClient.Write(ctx, endpoint, req.ReqCtx, partPoints)
 		if err != nil {
 			if ceresdbErr, ok := err.(*CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
-				c.routeClient.ClearRouteFor(getTablesFromPoints(points))
+				c.routeClient.ClearRouteFor(partTables)
 			}
-
-			ret = combineWriteResponse(ret, WriteResponse{Failed: uint32(len(points))})
+			combinedError = combineWriteError(combinedError,
+				CeresdbWriteError{FailedTables: [][]string{partTables}, Errors: []error{err}})
 			continue
 		}
-		ret = combineWriteResponse(ret, response)
+
+		combinedResponse = combineWriteResponse(combinedResponse, response)
+		combinedError = combineWriteError(combinedError,
+			CeresdbWriteError{SuccessTables: [][]string{partTables}, SuccessOk: []WriteResponse{response}})
 	}
-	return ret, nil
+
+	if len(combinedError.FailedTables) != 0 {
+		return WriteResponse{}, &combinedError
+	}
+	return combinedResponse, nil
 }
 
 func (c *clientImpl) withDefaultRequestContext(reqCtx *RequestContext) error {

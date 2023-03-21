@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/CeresDB/ceresdb-client-go/ceresdb"
@@ -68,14 +69,14 @@ func dropTable(client ceresdb.Client) error {
 	return nil
 }
 
-func writeTable(client ceresdb.Client) error {
+func writeTable(client ceresdb.Client, count int) error {
 	nowInMs := time.Now().UnixNano() / int64(time.Millisecond)
-	points := make([]ceresdb.Point, 0, 2)
-	for i := 0; i < 2; i++ {
+	points := make([]ceresdb.Point, 0, count)
+	for i := 0; i < count; i++ {
 		point, err := ceresdb.NewPointBuilder("demo").
 			SetTimestamp(nowInMs).
-			AddTag("name", ceresdb.NewStringValue("test_tag1")).
-			AddField("value", ceresdb.NewDoubleValue(0.4242)).
+			AddTag("name", ceresdb.NewStringValue("test_tag"+strconv.Itoa(i))).
+			AddField("value", ceresdb.NewDoubleValue(0.4242+float64(i))).
 			Build()
 		if err != nil {
 			return err
@@ -90,15 +91,15 @@ func writeTable(client ceresdb.Client) error {
 		fmt.Printf("write table fail, err: %v\n", err)
 		return err
 	}
-	if resp.Success != 2 {
+	if resp.Success != uint32(count) {
 		fmt.Printf("write table fail, upexpected response Success: %v\n", resp)
-		return fmt.Errorf("upexpected response: %+v", resp)
+		return fmt.Errorf("upexpected write response: %+v", resp)
 	}
 	fmt.Printf("write table success, response: %+v\n", resp)
 	return nil
 }
 
-func queryTable(client ceresdb.Client) error {
+func queryTable(client ceresdb.Client, count int) error {
 	querySQL := `SELECT * FROM demo`
 	req := ceresdb.SQLQueryRequest{
 		Tables: []string{"demo"},
@@ -108,6 +109,10 @@ func queryTable(client ceresdb.Client) error {
 	if err != nil {
 		fmt.Printf("query table fail, err:%v\n", err)
 		return err
+	}
+	if len(resp.Rows) != count {
+		fmt.Printf("query table fail, unexpected rows count, expected: %d, real: %d", count, len(resp.Rows))
+		return fmt.Errorf("unexpected query response: %+v", resp)
 	}
 	fmt.Printf("query table success, rows:%+v\n", resp.Rows)
 	return nil
@@ -139,13 +144,13 @@ func main() {
 
 	fmt.Println("------------------------------------------------------------------")
 	fmt.Println("### write table:")
-	if err := writeTable(client); err != nil {
+	if err := writeTable(client, 5); err != nil {
 		return
 	}
 
 	fmt.Println("------------------------------------------------------------------")
 	fmt.Println("### query table:")
-	if err := queryTable(client); err != nil {
+	if err := queryTable(client, 5); err != nil {
 		return
 	}
 

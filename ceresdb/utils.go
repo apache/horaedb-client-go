@@ -40,3 +40,15 @@ func combineWriteResponse(r1 WriteResponse, r2 WriteResponse) WriteResponse {
 	r1.Failed += r2.Failed
 	return r1
 }
+
+func combineWriteError(e1 CeresdbWriteError, e2 CeresdbWriteError) CeresdbWriteError {
+	if len(e2.SuccessTables) > 0 {
+		e1.SuccessTables = append(e1.SuccessTables, e2.SuccessTables...)
+		e1.SuccessOk = append(e1.SuccessOk, e2.SuccessOk...)
+	}
+	if len(e2.FailedTables) > 0 {
+		e1.FailedTables = append(e1.FailedTables, e2.FailedTables...)
+		e1.Errors = append(e1.Errors, e2.Errors...)
+	}
+	return e1
+}

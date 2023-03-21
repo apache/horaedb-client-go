@@ -24,6 +24,7 @@ func TestClusterMultiWriteAndQuery(t *testing.T) {
 
 	client, err := ceresdb.NewClient(clusterEndpoint, ceresdb.Direct,
 		ceresdb.EnableLoggerDebug(true),
+		ceresdb.WithDefaultDatabase("public"),
 	)
 	require.NoError(t, err, "init ceresdb client failed")
 

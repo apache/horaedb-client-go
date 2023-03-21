@@ -44,3 +44,18 @@ func (e *CeresdbError) ShouldRetry() bool {
 func (e *CeresdbError) ShouldClearRoute() bool {
 	return e.Code == codeInvalidRoute
 }
+
+type CeresdbWriteError struct {
+	SuccessTables [][]string
+	SuccessOk     []WriteResponse
+	FailedTables  [][]string
+	Errors        []error
+}
+
+func (e *CeresdbWriteError) Error() string {
+	errMsg := "ceresdb write failed, "
+	for i := 0; i < len(e.FailedTables); i++ {
+		errMsg += fmt.Sprintf("write %v failed with err [%v];", e.FailedTables[i], e.Errors[i])
+	}
+	return errMsg
+}
