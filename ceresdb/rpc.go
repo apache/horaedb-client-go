@@ -158,6 +158,10 @@ func (c *rpcClient) Route(endpoint string, reqCtx RequestContext, tables []strin
 
 	routes := make(map[string]route, len(routeResponse.Routes))
 	for _, r := range routeResponse.Routes {
+		if r.Endpoint == nil {
+			continue
+		}
+
 		routes[r.Table] = route{
 			Table:    r.Table,
 			Endpoint: fmt.Sprintf("%s:%d", r.Endpoint.Ip, r.Endpoint.Port),
