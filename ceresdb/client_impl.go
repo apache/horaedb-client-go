@@ -30,7 +30,8 @@ func shouldClearRoute(err error) bool {
 	if err != nil {
 		if ceresdbErr, ok := err.(*CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
 			return true
-		} else if strings.Contains(err.Error(), "connection refused") {
+		} else if strings.Contains(err.Error(), "connection error") {
+			// TODO: Find a better way to check if err means remote endpoint is down.
 			return true
 		}
 	}
