@@ -14,6 +14,7 @@ type WriteRequest struct {
 type WriteResponse struct {
 	Success uint32
 	Failed  uint32
+	Message string
 }
 
 type SQLQueryRequest struct {
