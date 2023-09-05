@@ -30,6 +30,7 @@ func newRouteClient(endpoint string, routeMode RouteMode, rpcClient *rpcClient, 
 		if err != nil {
 			return nil, err
 		}
+
 		routeClient.routeCache = routeCache
 		return routeClient, nil
 	case Proxy:

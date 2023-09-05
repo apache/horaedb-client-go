@@ -4,7 +4,9 @@ package ceresdb
 
 import (
 	"context"
-	"fmt"
+	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type clientImpl struct {
@@ -24,9 +26,22 @@ func newClient(endpoint string, routeMode RouteMode, opts options) (Client, erro
 	}, nil
 }
 
+func shouldClearRoute(err error) bool {
+	if err != nil {
+		if ceresdbErr, ok := err.(*CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
+			return true
+		} else if strings.Contains(err.Error(), "connection error") {
+			// TODO: Find a better way to check if err means remote endpoint is down.
+			return true
+		}
+	}
+
+	return false
+}
+
 func (c *clientImpl) SQLQuery(ctx context.Context, req SQLQueryRequest) (SQLQueryResponse, error) {
 	if err := c.withDefaultRequestContext(&req.ReqCtx); err != nil {
-		return SQLQueryResponse{}, err
+		return SQLQueryResponse{}, errors.Wrap(err, "add request ctx")
 	}
 
 	if len(req.Tables) == 0 {
@@ -35,21 +50,31 @@ func (c *clientImpl) SQLQuery(ctx context.Context, req SQLQueryRequest) (SQLQuer
 
 	routes, err := c.routeClient.RouteFor(req.ReqCtx, req.Tables)
 	if err != nil {
-		return SQLQueryResponse{}, fmt.Errorf("route tables failed, tables:%v, err:%v", req.Tables, err)
+		return SQLQueryResponse{}, errors.Wrapf(err, "route tables failed, names:%v", req.Tables)
 	}
-	for _, route := range routes {
-		queryResponse, err := c.rpcClient.SQLQuery(ctx, route.Endpoint, req)
-		if ceresdbErr, ok := err.(*CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
+
+	var endpoint string
+	if v, ok := routes[req.Tables[0]]; ok {
+		endpoint = v.Endpoint
+	} else {
+		return SQLQueryResponse{}, errors.Wrapf(ErrEmptyRoute, "failed to route table, name:%s", req.Tables[0])
+	}
+
+	resp, err := c.rpcClient.SQLQuery(ctx, endpoint, req)
+	if err != nil {
+		if shouldClearRoute(err) {
 			c.routeClient.ClearRouteFor(req.Tables)
 		}
-		return queryResponse, err
+
+		return SQLQueryResponse{}, errors.Wrap(err, "do grpc query")
 	}
-	return SQLQueryResponse{}, ErrEmptyRoute
+
+	return resp, nil
 }
 
 func (c *clientImpl) Write(ctx context.Context, req WriteRequest) (WriteResponse, error) {
 	if err := c.withDefaultRequestContext(&req.ReqCtx); err != nil {
-		return WriteResponse{}, err
+		return WriteResponse{}, errors.Wrap(err, "add request ctx")
 	}
 
 	if len(req.Points) == 0 {
@@ -57,32 +82,35 @@ func (c *clientImpl) Write(ctx context.Context, req WriteRequest) (WriteResponse
 	}
 
 	tables := getTablesFromPoints(req.Points)
-
 	routes, err := c.routeClient.RouteFor(req.ReqCtx, tables)
 	if err != nil {
-		return WriteResponse{}, err
+		return WriteResponse{}, errors.Wrap(err, "route table")
 	}
 
 	pointsByRoute, err := splitPointsByRoute(req.Points, routes)
 	if err != nil {
-		return WriteResponse{}, err
+		return WriteResponse{}, errors.Wrap(err, "split points by route")
 	}
 
-	// TODO
-	// Convert to parallel write
+	// TODO(chenxiang): Convert to parallel write
 	ret := WriteResponse{}
 	for endpoint, points := range pointsByRoute {
 		response, err := c.rpcClient.Write(ctx, endpoint, req.ReqCtx, points)
 		if err != nil {
-			if ceresdbErr, ok := err.(*CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
+			if shouldClearRoute(err) {
 				c.routeClient.ClearRouteFor(getTablesFromPoints(points))
 			}
 
+			// Only return first error message now.
+			if ret.Message != "" {
+				ret.Message = err.Error()
+			}
 			ret = combineWriteResponse(ret, WriteResponse{Failed: uint32(len(points))})
 			continue
 		}
 		ret = combineWriteResponse(ret, response)
 	}
+
 	return ret, nil
 }
 
