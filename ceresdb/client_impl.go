@@ -102,12 +102,13 @@ func (c *clientImpl) Write(ctx context.Context, req WriteRequest) (WriteResponse
 			}
 
 			// Only return first error message now.
-			if ret.Message != "" {
+			if ret.Message == "" {
 				ret.Message = err.Error()
 			}
 			ret = combineWriteResponse(ret, WriteResponse{Failed: uint32(len(points))})
 			continue
 		}
+
 		ret = combineWriteResponse(ret, response)
 	}
 
