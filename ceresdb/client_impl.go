@@ -28,7 +28,7 @@ func newClient(endpoint string, routeMode RouteMode, opts options) (Client, erro
 
 func shouldClearRoute(err error) bool {
 	if err != nil {
-		if ceresdbErr, ok := err.(*CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
+		if ceresdbErr, ok := err.(*Error); ok && ceresdbErr.ShouldClearRoute() {
 			return true
 		} else if strings.Contains(err.Error(), "connection error") {
 			// TODO: Find a better way to check if err means remote endpoint is down.
@@ -102,12 +102,13 @@ func (c *clientImpl) Write(ctx context.Context, req WriteRequest) (WriteResponse
 			}
 
 			// Only return first error message now.
-			if ret.Message != "" {
+			if ret.Message == "" {
 				ret.Message = err.Error()
 			}
 			ret = combineWriteResponse(ret, WriteResponse{Failed: uint32(len(points))})
 			continue
 		}
+
 		ret = combineWriteResponse(ret, response)
 	}
 
