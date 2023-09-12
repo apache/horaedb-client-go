@@ -28,7 +28,7 @@ func newClient(endpoint string, routeMode RouteMode, opts options) (Client, erro
 
 func shouldClearRoute(err error) bool {
 	if err != nil {
-		if ceresdbErr, ok := err.(*CeresdbError); ok && ceresdbErr.ShouldClearRoute() {
+		if ceresdbErr, ok := err.(*Error); ok && ceresdbErr.ShouldClearRoute() {
 			return true
 		} else if strings.Contains(err.Error(), "connection error") {
 			// TODO: Find a better way to check if err means remote endpoint is down.

@@ -29,20 +29,20 @@ const (
 	codeFlowControl  = 503
 )
 
-type CeresdbError struct {
+type Error struct {
 	Code uint32
 	Err  string
 }
 
-func (e *CeresdbError) Error() string {
+func (e *Error) Error() string {
 	return fmt.Sprintf("ceresdb rpc failed, code:%d, err:%s", e.Code, e.Err)
 }
 
 // TODO: may retry in sdk while code is 302 or 310
-func (e *CeresdbError) ShouldRetry() bool {
+func (e *Error) ShouldRetry() bool {
 	return false
 }
 
-func (e *CeresdbError) ShouldClearRoute() bool {
+func (e *Error) ShouldClearRoute() bool {
 	return e.Code == codeInvalidRoute
 }
