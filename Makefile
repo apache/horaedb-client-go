@@ -11,7 +11,7 @@ install-tools:
 	@go install github.com/mgechev/revive@v1.2.5
 	@go install golang.org/x/tools/cmd/goimports@latest
 
-PKG := github.com/CeresDB/ceresdb-client-go
+PKG := github.com/CeresDB/horaedb-client-go
 PACKAGES := $(shell go list ./... | tail -n +2)
 PACKAGE_DIRECTORIES := $(subst $(PKG)/,,$(PACKAGES))
 
