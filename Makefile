@@ -1,4 +1,3 @@
-
 default: build
 
 GO_TOOLS_BIN_PATH := $(shell pwd)/.tools/bin
@@ -20,7 +19,7 @@ lint:
 	revive -formatter friendly -config revive.toml ./...
 
 check-license:
-	sh ./tools/check-license.sh
+	docker run --rm -v $(pwd):/github/workspace ghcr.io/korandoru/hawkeye-native:v3 check
 
 test:
 	go test -timeout 5m -race -cover ./...
