@@ -23,14 +23,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CeresDB/ceresdb-client-go/ceresdb"
+	"github.com/CeresDB/horaedb-client-go/horaedb"
 	"github.com/stretchr/testify/require"
 )
 
 var endpoint = "127.0.0.1:8831"
 
 func init() {
-	if v := os.Getenv("CERESDB_ADDR"); v != "" {
+	if v := os.Getenv("HORAEDB_ADDR"); v != "" {
 		endpoint = v
 	}
 }
@@ -42,43 +42,43 @@ func currentMS() int64 {
 func TestBaseWriteAndQuery(t *testing.T) {
 	t.Skip("ignore local test")
 
-	client, err := ceresdb.NewClient(endpoint, ceresdb.Direct, ceresdb.WithDefaultDatabase("public"))
-	require.NoError(t, err, "init ceresdb client failed")
+	client, err := horaedb.NewClient(endpoint, horaedb.Direct, horaedb.WithDefaultDatabase("public"))
+	require.NoError(t, err, "init horaedb client failed")
 	timestamp := currentMS()
 
-	testBaseWrite(t, client, "ceresdb_test", timestamp, 2)
-	testBaseQuery(t, client, "ceresdb_test", timestamp, 2)
+	testBaseWrite(t, client, "horaedb_test", timestamp, 2)
+	testBaseQuery(t, client, "horaedb_test", timestamp, 2)
 }
 
 func TestNoDatabaseSelected(t *testing.T) {
 	t.Skip("ignore local test")
 
-	client, err := ceresdb.NewClient(endpoint, ceresdb.Direct)
-	require.NoError(t, err, "init ceresdb client failed")
+	client, err := horaedb.NewClient(endpoint, horaedb.Direct)
+	require.NoError(t, err, "init horaedb client failed")
 
 	points, err := buildTablePoints("test", currentMS(), 3)
 	require.NoError(t, err, "build points failed")
 	require.Equal(t, len(points), 3, "build points failed, not expected")
 
-	req := ceresdb.WriteRequest{
+	req := horaedb.WriteRequest{
 		Points: points,
 	}
 	_, err = client.Write(context.Background(), req)
-	require.ErrorIs(t, err, ceresdb.ErrNoDatabaseSelected)
+	require.ErrorIs(t, err, horaedb.ErrNoDatabaseSelected)
 }
 
 func TestDatabaseInRequest(t *testing.T) {
 	t.Skip("ignore local test")
 
-	client, err := ceresdb.NewClient(endpoint, ceresdb.Direct, ceresdb.WithDefaultDatabase("not_exist_db"))
-	require.NoError(t, err, "init ceresdb client failed")
+	client, err := horaedb.NewClient(endpoint, horaedb.Direct, horaedb.WithDefaultDatabase("not_exist_db"))
+	require.NoError(t, err, "init horaedb client failed")
 
-	points, err := buildTablePoints("ceresdb_test", currentMS(), 3)
+	points, err := buildTablePoints("horaedb_test", currentMS(), 3)
 	require.NoError(t, err, "build points failed")
 	require.Equal(t, len(points), 3, "build points failed, not expected")
 
-	req := ceresdb.WriteRequest{
-		ReqCtx: ceresdb.RequestContext{
+	req := horaedb.WriteRequest{
+		ReqCtx: horaedb.RequestContext{
 			Database: "public",
 		},
 		Points: points,
@@ -89,26 +89,26 @@ func TestDatabaseInRequest(t *testing.T) {
 }
 
 // nolint
-func buildTablePoints(table string, timestamp int64, count int) ([]ceresdb.Point, error) {
-	points := make([]ceresdb.Point, 0, count)
+func buildTablePoints(table string, timestamp int64, count int) ([]horaedb.Point, error) {
+	points := make([]horaedb.Point, 0, count)
 	for idx := 0; idx < count; idx++ {
-		point, err := ceresdb.NewPointBuilder(table).
+		point, err := horaedb.NewPointBuilder(table).
 			SetTimestamp(timestamp).
-			AddTag("tagA", ceresdb.NewStringValue(fmt.Sprintf("tagA:%s:%d", table, idx))).
-			AddTag("tagB", ceresdb.NewStringValue(fmt.Sprintf("tagB:%s:%d", table, idx))).
-			AddField("vbool", ceresdb.NewBoolValue(true)).
-			AddField("vstring", ceresdb.NewStringValue(fmt.Sprintf("row%d", idx))).
-			AddField("vfloat64", ceresdb.NewDoubleValue(0.64)).
-			AddField("vfloat32", ceresdb.NewFloatValue(0.32)).
-			AddField("vint64", ceresdb.NewInt64Value(-64)).
-			AddField("vint32", ceresdb.NewInt32Value(-32)).
-			AddField("vint16", ceresdb.NewInt16Value(-16)).
-			AddField("vint8", ceresdb.NewInt8Value(-8)).
-			AddField("vuint64", ceresdb.NewUint64Value(64)).
-			AddField("vuint32", ceresdb.NewUint32Value(32)).
-			AddField("vuint16", ceresdb.NewUint16Value(16)).
-			AddField("vuint8", ceresdb.NewUint8Value(8)).
-			AddField("vbinary", ceresdb.NewVarbinaryValue([]byte{1, 2, 3})).
+			AddTag("tagA", horaedb.NewStringValue(fmt.Sprintf("tagA:%s:%d", table, idx))).
+			AddTag("tagB", horaedb.NewStringValue(fmt.Sprintf("tagB:%s:%d", table, idx))).
+			AddField("vbool", horaedb.NewBoolValue(true)).
+			AddField("vstring", horaedb.NewStringValue(fmt.Sprintf("row%d", idx))).
+			AddField("vfloat64", horaedb.NewDoubleValue(0.64)).
+			AddField("vfloat32", horaedb.NewFloatValue(0.32)).
+			AddField("vint64", horaedb.NewInt64Value(-64)).
+			AddField("vint32", horaedb.NewInt32Value(-32)).
+			AddField("vint16", horaedb.NewInt16Value(-16)).
+			AddField("vint8", horaedb.NewInt8Value(-8)).
+			AddField("vuint64", horaedb.NewUint64Value(64)).
+			AddField("vuint32", horaedb.NewUint32Value(32)).
+			AddField("vuint16", horaedb.NewUint16Value(16)).
+			AddField("vuint8", horaedb.NewUint8Value(8)).
+			AddField("vbinary", horaedb.NewVarbinaryValue([]byte{1, 2, 3})).
 			Build()
 		if err != nil {
 			return nil, err
@@ -119,12 +119,12 @@ func buildTablePoints(table string, timestamp int64, count int) ([]ceresdb.Point
 }
 
 // nolint
-func testBaseWrite(t *testing.T, client ceresdb.Client, table string, timestamp int64, count int) {
+func testBaseWrite(t *testing.T, client horaedb.Client, table string, timestamp int64, count int) {
 	points, err := buildTablePoints(table, timestamp, count)
 	require.NoError(t, err, "build points failed")
 	require.Equal(t, len(points), count, "build points failed, not expected")
 
-	req := ceresdb.WriteRequest{
+	req := horaedb.WriteRequest{
 		Points: points,
 	}
 	resp, err := client.Write(context.Background(), req)
@@ -136,8 +136,8 @@ func testBaseWrite(t *testing.T, client ceresdb.Client, table string, timestamp 
 }
 
 // nolint
-func testBaseQuery(t *testing.T, client ceresdb.Client, table string, timestamp int64, count int) {
-	req := ceresdb.SQLQueryRequest{
+func testBaseQuery(t *testing.T, client horaedb.Client, table string, timestamp int64, count int) {
+	req := horaedb.SQLQueryRequest{
 		Tables: []string{table},
 		SQL:    fmt.Sprintf("select * from %s where timestamp = %d", table, timestamp),
 	}

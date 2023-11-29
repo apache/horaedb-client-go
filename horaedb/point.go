@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ceresdb
+package horaedb
 
 import (
 	"fmt"
@@ -88,7 +88,7 @@ func checkPoint(point Point) error {
 
 	for tagK := range point.Tags {
 		if isReservedColumn(tagK) {
-			return fmt.Errorf("tag name is reserved column name in ceresdb, name:%s", tagK)
+			return fmt.Errorf("tag name is reserved column name in horaedb, name:%s", tagK)
 		}
 	}
 

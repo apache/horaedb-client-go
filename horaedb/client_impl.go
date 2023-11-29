@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ceresdb
+package horaedb
 
 import (
 	"context"
@@ -42,7 +42,7 @@ func newClient(endpoint string, routeMode RouteMode, opts options) (Client, erro
 
 func shouldClearRoute(err error) bool {
 	if err != nil {
-		if ceresdbErr, ok := err.(*Error); ok && ceresdbErr.ShouldClearRoute() {
+		if unwrapErr, ok := err.(*Error); ok && unwrapErr.ShouldClearRoute() {
 			return true
 		} else if strings.Contains(err.Error(), "connection error") {
 			// TODO: Find a better way to check if err means remote endpoint is down.

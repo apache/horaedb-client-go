@@ -19,15 +19,15 @@ package test
 import (
 	"testing"
 
-	"github.com/CeresDB/ceresdb-client-go/ceresdb"
+	"github.com/CeresDB/horaedb-client-go/horaedb"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPointBuilder(t *testing.T) {
-	point, err := ceresdb.NewPointBuilder("test").
+	point, err := horaedb.NewPointBuilder("test").
 		SetTimestamp(currentMS()).
-		AddTag("tagA", ceresdb.NewStringValue("a")).
-		AddField("filedA", ceresdb.NewFloatValue(0.24)).
+		AddTag("tagA", horaedb.NewStringValue("a")).
+		AddField("filedA", horaedb.NewFloatValue(0.24)).
 		Build()
 
 	require.NoError(t, err)
@@ -37,48 +37,48 @@ func TestPointBuilder(t *testing.T) {
 }
 
 func TestPointBuilderWithEmptyTableErr(t *testing.T) {
-	_, err := ceresdb.NewPointBuilder("").
+	_, err := horaedb.NewPointBuilder("").
 		SetTimestamp(currentMS()).
-		AddTag("tagA", ceresdb.NewStringValue("a")).
-		AddField("filedA", ceresdb.NewFloatValue(0.24)).
+		AddTag("tagA", horaedb.NewStringValue("a")).
+		AddField("filedA", horaedb.NewFloatValue(0.24)).
 		Build()
 
-	require.ErrorIs(t, err, ceresdb.ErrPointEmptyTable)
+	require.ErrorIs(t, err, horaedb.ErrPointEmptyTable)
 }
 
 func TestPointBuilderWithEmptyTimestampErr(t *testing.T) {
-	_, err := ceresdb.NewPointBuilder("test").
-		AddTag("tagA", ceresdb.NewStringValue("a")).
-		AddField("filedA", ceresdb.NewFloatValue(0.24)).
+	_, err := horaedb.NewPointBuilder("test").
+		AddTag("tagA", horaedb.NewStringValue("a")).
+		AddField("filedA", horaedb.NewFloatValue(0.24)).
 		Build()
 
-	require.ErrorIs(t, err, ceresdb.ErrPointEmptyTimestamp)
+	require.ErrorIs(t, err, horaedb.ErrPointEmptyTimestamp)
 }
 
 func TestPointBuilderWithEmptyTagsErr(t *testing.T) {
-	_, err := ceresdb.NewPointBuilder("test").
+	_, err := horaedb.NewPointBuilder("test").
 		SetTimestamp(currentMS()).
-		AddField("filedA", ceresdb.NewFloatValue(0.24)).
+		AddField("filedA", horaedb.NewFloatValue(0.24)).
 		Build()
 
-	require.ErrorIs(t, err, ceresdb.ErrPointEmptyTags)
+	require.ErrorIs(t, err, horaedb.ErrPointEmptyTags)
 }
 
 func TestPointBuilderWithEmptyFieldsErr(t *testing.T) {
-	_, err := ceresdb.NewPointBuilder("test").
+	_, err := horaedb.NewPointBuilder("test").
 		SetTimestamp(currentMS()).
-		AddTag("tagA", ceresdb.NewStringValue("a")).
+		AddTag("tagA", horaedb.NewStringValue("a")).
 		Build()
 
-	require.ErrorIs(t, err, ceresdb.ErrPointEmptyFields)
+	require.ErrorIs(t, err, horaedb.ErrPointEmptyFields)
 }
 
 func TestPointBuilderWithReservedColumn(t *testing.T) {
-	_, err := ceresdb.NewPointBuilder("test").
+	_, err := horaedb.NewPointBuilder("test").
 		SetTimestamp(currentMS()).
-		AddTag("tsid", ceresdb.NewStringValue("a")).
-		AddField("filedA", ceresdb.NewFloatValue(0.24)).
+		AddTag("tsid", horaedb.NewStringValue("a")).
+		AddField("filedA", horaedb.NewFloatValue(0.24)).
 		Build()
 
-	require.ErrorContains(t, err, "tag name is reserved column name in ceresdb")
+	require.ErrorContains(t, err, "tag name is reserved column name in horaedb")
 }

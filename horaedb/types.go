@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ceresdb
+package horaedb
 
 type RequestContext struct {
 	Database string

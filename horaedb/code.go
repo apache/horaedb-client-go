@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ceresdb
+package horaedb
 
 import (
 	"errors"
@@ -49,7 +49,7 @@ type Error struct {
 }
 
 func (e *Error) Error() string {
-	return fmt.Sprintf("ceresdb rpc failed, code:%d, err:%s", e.Code, e.Err)
+	return fmt.Sprintf("HoraeDB RPC failed, code:%d, err:%s", e.Code, e.Err)
 }
 
 // TODO: may retry in sdk while code is 302 or 310
