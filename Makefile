@@ -19,7 +19,7 @@ lint:
 	revive -formatter friendly -config revive.toml ./...
 
 check-license:
-	docker run --rm -v $(pwd):/github/workspace ghcr.io/korandoru/hawkeye-native:v3 check
+	docker run --rm -v $(shell pwd):/github/workspace ghcr.io/korandoru/hawkeye-native:v3 check
 
 test:
 	go test -timeout 5m -race -cover ./...
