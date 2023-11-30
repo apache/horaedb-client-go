@@ -1,4 +1,18 @@
-// Copyright 2022 CeresDB Project Authors. Licensed under Apache-2.0.
+/*
+ * Copyright 2022 The HoraeDB Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package main
 
@@ -8,19 +22,19 @@ import (
 	"os"
 	"time"
 
-	"github.com/CeresDB/ceresdb-client-go/ceresdb"
+	"github.com/CeresDB/horaedb-client-go/horaedb"
 )
 
 var endpoint = "127.0.0.1:8831"
 
 func init() {
-	if v := os.Getenv("CERESDB_ADDR"); v != "" {
+	if v := os.Getenv("HORAEDB_ADDR"); v != "" {
 		endpoint = v
 	}
 }
 
-func existsTable(client ceresdb.Client) error {
-	req := ceresdb.SQLQueryRequest{
+func existsTable(client horaedb.Client) error {
+	req := horaedb.SQLQueryRequest{
 		Tables: []string{"demo"},
 		SQL:    "EXISTS TABLE demo",
 	}
@@ -33,14 +47,14 @@ func existsTable(client ceresdb.Client) error {
 	return nil
 }
 
-func createTable(client ceresdb.Client) error {
+func createTable(client horaedb.Client) error {
 	createTableSQL := `CREATE TABLE IF NOT EXISTS demo (
 	name string TAG,
 	value double,
 	t timestamp NOT NULL,
 	TIMESTAMP KEY(t)) ENGINE=Analytic with (enable_ttl=false)`
 
-	req := ceresdb.SQLQueryRequest{
+	req := horaedb.SQLQueryRequest{
 		Tables: []string{"demo"},
 		SQL:    createTableSQL,
 	}
@@ -53,9 +67,9 @@ func createTable(client ceresdb.Client) error {
 	return nil
 }
 
-func dropTable(client ceresdb.Client) error {
+func dropTable(client horaedb.Client) error {
 	dropTableSQL := `DROP TABLE demo`
-	req := ceresdb.SQLQueryRequest{
+	req := horaedb.SQLQueryRequest{
 		Tables: []string{"demo"},
 		SQL:    dropTableSQL,
 	}
@@ -68,21 +82,21 @@ func dropTable(client ceresdb.Client) error {
 	return nil
 }
 
-func writeTable(client ceresdb.Client) error {
+func writeTable(client horaedb.Client) error {
 	nowInMs := time.Now().UnixNano() / int64(time.Millisecond)
-	points := make([]ceresdb.Point, 0, 2)
+	points := make([]horaedb.Point, 0, 2)
 	for i := 0; i < 2; i++ {
-		point, err := ceresdb.NewPointBuilder("demo").
+		point, err := horaedb.NewPointBuilder("demo").
 			SetTimestamp(nowInMs).
-			AddTag("name", ceresdb.NewStringValue("test_tag1")).
-			AddField("value", ceresdb.NewDoubleValue(0.4242)).
+			AddTag("name", horaedb.NewStringValue("test_tag1")).
+			AddField("value", horaedb.NewDoubleValue(0.4242)).
 			Build()
 		if err != nil {
 			return err
 		}
 		points = append(points, point)
 	}
-	req := ceresdb.WriteRequest{
+	req := horaedb.WriteRequest{
 		Points: points,
 	}
 	resp, err := client.Write(context.Background(), req)
@@ -98,9 +112,9 @@ func writeTable(client ceresdb.Client) error {
 	return nil
 }
 
-func queryTable(client ceresdb.Client) error {
+func queryTable(client horaedb.Client) error {
 	querySQL := `SELECT * FROM demo`
-	req := ceresdb.SQLQueryRequest{
+	req := horaedb.SQLQueryRequest{
 		Tables: []string{"demo"},
 		SQL:    querySQL,
 	}
@@ -116,9 +130,9 @@ func queryTable(client ceresdb.Client) error {
 func main() {
 	fmt.Println("------------------------------------------------------------------")
 	fmt.Println("### new client:")
-	client, err := ceresdb.NewClient(endpoint, ceresdb.Direct,
-		ceresdb.WithDefaultDatabase("public"),
-		ceresdb.EnableLoggerDebug(true),
+	client, err := horaedb.NewClient(endpoint, horaedb.Direct,
+		horaedb.WithDefaultDatabase("public"),
+		horaedb.EnableLoggerDebug(true),
 	)
 	if err != nil {
 		fmt.Printf("new ceresdb client fail, err: %v\n", err)

@@ -17,9 +17,5 @@ Golang client for [HoraeDB](https://github.com/CeresDB/horaedb).
 Please refer [Golang SDK docs](https://ceresdb.github.io/docs/en/sdk/go.html).
 
 ## License
-Under [Apache License 2.0](./LICENSE).
 
-## Community and support
-- Join the user group on [Slack](https://join.slack.com/t/ceresdbcommunity/shared_invite/zt-1au1ihbdy-5huC9J9s2462yBMIWmerTw)
-- Join the user group on WeChat [WeChat QR code](https://github.com/CeresDB/community/blob/main/communication/wechat/group_qrcode.png)
-- Join the user group on DingTalk: 44602802
+Under [Apache License 2.0](LICENSE).

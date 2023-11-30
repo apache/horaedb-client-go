@@ -1,11 +1,12 @@
-module github.com/CeresDB/ceresdb-client-go
+module github.com/CeresDB/horaedb-client-go
 
 go 1.17
 
 require (
-	github.com/CeresDB/ceresdbproto/golang v0.0.0-20230228090856-37ba6214b131
+	github.com/CeresDB/horaedbproto/golang v0.0.0-20231129131648-5d5d868218c3
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40
 	github.com/hashicorp/golang-lru v1.0.2
+	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.1
 	google.golang.org/grpc v1.47.0
 )
@@ -20,8 +21,6 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/go-cmp v0.5.8 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
