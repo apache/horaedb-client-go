@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/CeresDB/horaedb-client-go/horaedb"
+	"github.com/apache/horaedb-client-go/horaedb"
 )
 
 var endpoint = "127.0.0.1:8831"
@@ -135,7 +135,7 @@ func main() {
 		horaedb.EnableLoggerDebug(true),
 	)
 	if err != nil {
-		fmt.Printf("new ceresdb client fail, err: %v\n", err)
+		fmt.Printf("new client fail, err: %v\n", err)
 		return
 	}
 

@@ -14,7 +14,7 @@ Golang client for [HoraeDB](https://github.com/apache/incubator-horaedb).
 
 ## How To Use
 
-Please refer [Golang SDK docs](https://apache.github.io/incubator-horaedb-docs/en/sdk/go.html).
+Please refer [Golang SDK docs](https://horaedb.apache.org/en/sdk/go.html).
 
 ## License
 

@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CeresDB/horaedb-client-go/horaedb"
+	"github.com/apache/horaedb-client-go/horaedb"
 	"github.com/stretchr/testify/require"
 )
 

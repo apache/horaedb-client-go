@@ -1,4 +1,4 @@
-module github.com/CeresDB/horaedb-client-go
+module github.com/apache/horaedb-client-go
 
 go 1.17
 
