@@ -1,4 +1,4 @@
-# HoraeDB Golang Client
+# Apache HoraeDB (Incubating) Golang Client
 
 [![CI](https://github.com/apache/incubator-horaedb-client-go/actions/workflows/CI.yml/badge.svg)](https://github.com/apache/incubator-horaedb-client-go/actions/workflows/CI.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/apache/incubator-horaedb-client-go.svg)](https://pkg.go.dev/github.com/apache/incubator-horaedb-client-go)
@@ -6,9 +6,10 @@
 
 ## Introduction
 
-Golang client for [HoraeDB](https://github.com/apache/incubator-horaedb).
+Golang client for [Apache HoraeDB](https://github.com/apache/incubator-horaedb).
 
 ## Support features
+
 - DDL, such as create/alter table
 - Write and query support in both standalone and cluster mode
 
