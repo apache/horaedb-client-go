@@ -3,8 +3,8 @@ module github.com/apache/horaedb-client-go
 go 1.17
 
 require (
-	github.com/CeresDB/horaedbproto/golang v0.0.0-20231129131648-5d5d868218c3
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40
+	github.com/apache/incubator-horaedb-proto/golang v0.0.0-20240220091914-b5a6581e80d1
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.1
