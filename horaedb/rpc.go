@@ -27,10 +27,10 @@ import (
 	"io"
 	"sync"
 
-	"github.com/CeresDB/horaedbproto/golang/pkg/storagepb"
 	"github.com/apache/arrow/go/arrow"
 	"github.com/apache/arrow/go/arrow/array"
 	"github.com/apache/arrow/go/arrow/ipc"
+	"github.com/apache/incubator-horaedb-proto/golang/pkg/storagepb"
 	"github.com/klauspost/compress/zstd"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
