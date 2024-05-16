@@ -19,7 +19,7 @@
 
 github:
   description: >-
-    Golang implementation of HoraeDB client.
+    Apache HoraeDB (Incubating) Golang Client.
   homepage: https://horaedb.apache.org
   labels:
     - golang
