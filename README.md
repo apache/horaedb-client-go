@@ -6,7 +6,7 @@
 
 ## Introduction
 
-Golang client for [Apache HoraeDB](https://github.com/apache/incubator-horaedb).
+Golang client for [Apache HoraeDB (Incubating)](https://github.com/apache/incubator-horaedb).
 
 ## Support features
 
