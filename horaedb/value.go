@@ -24,6 +24,7 @@ type DataType int
 const (
 	NULL DataType = iota
 	TIMESTAMP
+	DATE
 	STRING
 	DOUBLE
 	FLOAT
@@ -57,6 +58,10 @@ func (v Value) IsNull() bool {
 }
 
 func (v Value) TimestampValue() int64 {
+	return v.Int64Value()
+}
+
+func (v Value) DateValue() int64 {
 	return v.Int64Value()
 }
 
